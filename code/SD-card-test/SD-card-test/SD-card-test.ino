@@ -51,8 +51,8 @@ const uint32_t ONE_SECOND = 1000L;
 const uint32_t ONE_MINUTE = 60 * ONE_SECOND;
 const uint32_t ONE_HOUR = 60 * ONE_MINUTE;
 
-uint32_t updateInterval = 1000;
-uint32_t updateTime;
+uint32_t displayUpdateInterval = 1000;
+uint32_t displayUpdateTime;
 int state = 0;
 uint32_t animUpdateTime = 0;
 int frameCounter;
@@ -348,8 +348,8 @@ void loop() {  // run over and over
   if (Serial.available()) {
     Serial.write(Serial.read());
   }
-  if (millis() > updateTime) {
-    updateTime += updateInterval;
+  if (millis() > displayUpdateTime) {
+    displayUpdateTime += displayUpdateInterval;
     state = 1 - state;
   }
 
