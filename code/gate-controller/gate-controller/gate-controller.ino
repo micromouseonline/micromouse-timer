@@ -20,6 +20,7 @@
 #include "RTClib.h"
 #include "basic-timer.h"
 #include "button.h"
+#include "messages.h"
 #include "stopwatch.h"
 
 /// Pin Assignments
@@ -111,6 +112,21 @@ enum ContestState {
 };
 
 ContestState contestState = IDLE;
+
+/*
+David's states
+
+enum SystemState {
+  STATE_POWER_UP = 0,
+  STATE_NO_MOUSE = 1,
+  STATE_MOUSE_IN_START = 2,
+  STATE_PASS_START_GATE = 3,
+  STATE_MOUSE_RUNNING = 4,
+  STATE_WAIT_FORCLEAR_GOAL_GATE = 5,
+  STATE_MOUSE_RETURNING = 6,
+  NUM_STATES
+};
+*/
 
 /***************************************************   Encoder */
 int8_t gEncoderValue = 0;
@@ -237,7 +253,7 @@ void setup() {
   encoderButton.registerPressHandler(encoderPress);
   encoderButton.registerLongPressHandler(encoderLongPress);
 
-  Serial.begin(57600);
+  Serial.begin(9600);
   while (!Serial) {
     ;  // Needed for native USB port only
   }
@@ -289,6 +305,7 @@ void setup() {
   digitalWrite(LED_4, 0);
   digitalWrite(LED_5, 0);
   contestState = INIT;
+  sendMessage(MSG_NEW_MOUSE, 0);
 }
 
 /*********************************************** process radio data ***/
@@ -447,31 +464,35 @@ void mazeMachine() {
       if (startButton.isPressed()) {
         if (!mazeTimer.running()) {
           mazeTimer.restart();
+          sendMessage(MSG_MAZE_TIME, 0);
         }
+        sendMessage(MSG_SPLIT_TIME, 0);
         runTimer.restart();
         runCount++;
         contestState = RUNNING;
       }
       break;
-    case RUNNING: // robot on its way to the goal
+    case RUNNING:  // robot on its way to the goal
       if (goalButton.isPressed()) {
         runTimer.stop();
-        if (runTimer.time() < bestTime) {
-          bestTime = runTimer.time();
+        uint32_t time = runTimer.time();
+        sendMessage(MSG_RUN_TIME_MS, time);
+        sendMessage(MSG_SPLIT_TIME, 0);
+        if (time < bestTime) {
+          bestTime = time;
           showTime(11, 3, bestTime);
         }
         contestState = GOAL;
       }
       if (touchButton.isPressed()) {
-        runTimer.reset();
+        runTimer.stop();
+        // sendMessage(MSG_RUN_TIME_MS,runTimer.time());
         contestState = ARMED;
       }
       break;
-    case GOAL:  // root has entered the goal
-      if (startButton.isPressed()) {
-        contestState = ARMED;
-      }
+    case GOAL:  // root has entered the goal and could be returning or exploring
       if (touchButton.isPressed()) {
+        // robot is back in start cell or run is aborted
         contestState = ARMED;
       }
       break;
@@ -492,7 +513,10 @@ void loop() {
   }
   mazeMachine();
   if (Serial.available()) {
-    Serial.write(Serial.read());
+    char c = Serial.read();
+    if (c == '>') {
+      contestState = INIT;
+    }
   }
   if (millis() > displayUpdateTime) {
     displayUpdateTime += displayUpdateInterval;
