@@ -41,10 +41,10 @@ const int ENC_BTN = 2;
 const int ENC_A = A0;
 const int ENC_B = A1;
 
-const int BUTTON_START = A2;
-const int BUTTON_GOAL = A3;
-const int BUTTON_TOUCH = A6;
-const int BUTTON_RESET = A7;
+const int BUTTON_START = A7;
+const int BUTTON_GOAL = A6;
+const int BUTTON_TOUCH = A3;
+const int BUTTON_RESET = A2;
 
 const int I2C_SDA = A4;
 const int I2C_SCL = A5;
@@ -58,10 +58,28 @@ Button goalButton(BUTTON_GOAL, Button::ACTIVE_LOW, Button::ANALOG);
 Button touchButton(BUTTON_TOUCH, Button::ACTIVE_LOW, Button::ANALOG);
 Button resetButton(BUTTON_RESET, Button::ACTIVE_LOW, Button::ANALOG);
 
+/***
+ * Note that the adress of the I2C expander depends on the exact
+ * chip version and the theree address links.
+ * There are two common choices for the expander.
+ *
+ * The PCF8574T has a basic address of 0x27 with no links bridged
+ * The PCF8574AT has a basic address of 0x3F with no links bridged
+ *
+ * The address bridges, A0..A2 clear the corresponding bits in the
+ * address. Thus, bridging all the links would make the addresses
+ * 0x20 and 0x38 respectively.
+ *
+ * Also note that the LiquidCrystal_I2C library, like many Arduino
+ * sketches/libraries, uses a right-justified address.
+ */
 // I2C LCD pin numbers are on the extender chip - not the arduino
-LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
+LiquidCrystal_I2C lcd(0x3f, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);
 
-// TODO: why does the PCF8563 need its address doubled here?
+/***
+ * The PCF8563 library expects a left-justified address. Hence the
+ * multiplication by two in the constructor
+ */
 PCF8563 rtc(0x51 * 2);
 
 /***
@@ -206,6 +224,39 @@ void encoderClick() {
 void encoderLongPress() {
   Serial.println(F("Long press"));
 }
+
+void i2cScan() {
+  byte error, address;
+  int nDevices;
+
+  nDevices = 0;
+  for (address = 1; address < 127; address++) {
+    // The i2c_scanner uses the return value of
+    // the Write.endTransmisstion to see if
+    // a device did acknowledge to the address.
+    Wire.beginTransmission(address);
+    error = Wire.endTransmission();
+
+    if (error == 0) {
+      Serial.print("I2C device found at address 0x");
+      if (address < 16)
+        Serial.print("0");
+      Serial.print(address, HEX);
+      Serial.println("  !");
+
+      nDevices++;
+    } else if (error == 4) {
+      Serial.print("Unknown error at address 0x");
+      if (address < 16)
+        Serial.print("0");
+      Serial.println(address, HEX);
+    }
+  }
+  if (nDevices == 0)
+    Serial.println("No I2C devices found\n");
+  else
+    Serial.println("done\n");
+}
 /*********************************************** UTILITIES END***************/
 
 /*********************************************** systick ******************/
@@ -257,8 +308,12 @@ void setup() {
   while (!Serial) {
     ;  // Needed for native USB port only
   }
+  Serial.println("Hello");
   digitalWrite(LED_2, 1);
   Wire.begin();
+
+  i2cScan();
+
   lcd.begin(20, 4);  //(backlight is on)
   lcd.createChar(0, c0);
   lcd.createChar(1, c1);
@@ -272,8 +327,8 @@ void setup() {
   lcd.setCursor(0, 0);
   lcd.print(F("Initialising SD card"));
   digitalWrite(LED_3, 1);
-  sdCardInit(SD_SELECT, SD_DETECT);
-  cardInfo();
+  // sdCardInit(SD_SELECT, SD_DETECT);
+  // cardInfo();
 
   /***
    * The PCF8256 seems to have significant drift :(
@@ -503,9 +558,29 @@ void mazeMachine() {
       break;
   }
 }
+
+void pintest() {
+  if (startButton.isPressed()) {
+    Serial.println("start");
+  }
+
+  if (goalButton.isPressed()) {
+    Serial.println("goal");
+  }
+  if (touchButton.isPressed()) {
+    Serial.println("touch");
+  }
+  if (resetButton.isPressed()) {
+    Serial.println("reset");
+  }
+  if (encoderButton.isPressed()) {
+    Serial.println("enc");
+  }
+}
 /*********************************************** main loop ******************/
 
 void loop() {
+
   if (radio.available()) {
     if (radio.read() == '*') {
       handlePacket();
