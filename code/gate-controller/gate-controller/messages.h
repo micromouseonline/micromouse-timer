@@ -65,6 +65,27 @@ Implemented message types:
 #define MSG_NEW_MOUSE 98
 #define MSG_SET_MODE 99
 
+// Message Valid Values
+// clang-format off
+const int MSG_NewMouse       = 98;
+const int MSG_CURRENT_STATE  =  4;
+const int MSG_C1SplitTime    = 12;
+const int MSG_C1RunTime      = 13;
+const int MSG_CourseTimeMs   = 30;
+
+const int MSG_SetMode        = 99;  // not implemented
+
+const int MSG_SGLevel        = 81;
+const int MSG_SGPot          = 82;
+const int MSG_FGLevel        = 83;
+const int MSG_FGPot          = 84;
+const int MSG_SCLevel        = 85;
+const int MSG_SCPot          = 86;
+const int MSG_STrigger       = 71;
+const int MSG_FTrigger       = 72;
+const int MSG_CTrigger       = 73;
+// clang-format on
+
 // clang-format off
 const char* const msg[] PROGMEM = {
     "  none             ",
