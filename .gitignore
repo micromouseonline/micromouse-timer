@@ -1,9 +1,5 @@
-.DS_Store
-.pio/*
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
-*.code-workspace
-
+.pio
+.vscode
+.idea
+*.lst
+*.map
