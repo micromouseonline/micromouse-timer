@@ -2,7 +2,7 @@
  * P Harrison, 2020.
  */
 
-#include "Button.h"
+#include "button.h"
 #include <Arduino.h>
 
 #define MAX_CLICK_TIME 300

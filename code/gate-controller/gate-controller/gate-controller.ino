@@ -20,9 +20,9 @@
 #include "RTClib.h"
 #include "basic-timer.h"
 #include "button.h"
+#include "kerikun-timer.h"
 #include "messages.h"
 #include "stopwatch.h"
-
 /// Pin Assignments
 const int LED_2 = 3;
 const int LED_3 = 4;
@@ -41,8 +41,8 @@ const int ENC_BTN = 2;
 const int ENC_A = A0;
 const int ENC_B = A1;
 
-const int BUTTON_START = A7;
-const int BUTTON_GOAL = A6;
+const int BUTTON_START = A7;  // analogue only
+const int BUTTON_GOAL = A6;   // analogue only
 const int BUTTON_TOUCH = A3;
 const int BUTTON_RESET = A2;
 
@@ -223,6 +223,7 @@ void encoderClick() {
 
 void encoderLongPress() {
   Serial.println(F("Long press"));
+  // i2cScan();
 }
 
 void i2cScan() {
@@ -304,15 +305,15 @@ void setup() {
   encoderButton.registerPressHandler(encoderPress);
   encoderButton.registerLongPressHandler(encoderLongPress);
 
+  // NOTE: speed changes set in config must be saved to EEPROM to avoid problems with reset-on-connect
   Serial.begin(9600);
+  // Serial.begin(57600);
   while (!Serial) {
     ;  // Needed for native USB port only
   }
   Serial.println("Hello");
   digitalWrite(LED_2, 1);
   Wire.begin();
-
-  i2cScan();
 
   lcd.begin(20, 4);  //(backlight is on)
   lcd.createChar(0, c0);
@@ -580,7 +581,6 @@ void pintest() {
 /*********************************************** main loop ******************/
 
 void loop() {
-
   if (radio.available()) {
     if (radio.read() == '*') {
       handlePacket();

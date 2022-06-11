@@ -3,6 +3,18 @@
 
 #include <Arduino.h>
 
+/***
+ * Not all analogue pins can be read as digital inputs.
+ * On the arduino Nano, these are ADC6 and ADC7 which are
+ * not connected to digital ports.
+ *
+ * Consequently, they must be read as analogue values and
+ * then rounded up or down to digital equivalents.
+ *
+ *
+ *
+ */
+
 typedef void (*EventHandler)();
 
 

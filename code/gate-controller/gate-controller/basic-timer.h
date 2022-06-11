@@ -1,4 +1,4 @@
-#include <stdint.h>
+#include "Arduino.h"
 
 class Timer {
  public:
