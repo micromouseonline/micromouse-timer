@@ -1,7 +1,7 @@
 # micromouse-timer
 Hardware and software for a micromouse classic contest timing system
 
-![First prototype](images/IMG_6975.jpg)
+![First prototype](images/controller-assembly-prototype-box-working.jpg)
 
 ## Design goals
 Many micromouse timing systems rely on devices placed in the posts to create a break-beam arrangement. An emitter in one post produces an optical signal that is detected by a matched receiver in the other post. Commercial break-beam devices are available from companies like Omron but they are very expensive, Simpler arrangements an be made with just an LED and phototransistor. For the most reliable operation, the measuring setup really needs to control both the emitter and detector synchronously so that it can detect the breaking of the beam under a wide range of ambient lighting conditions.
