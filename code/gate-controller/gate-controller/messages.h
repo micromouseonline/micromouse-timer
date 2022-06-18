@@ -65,6 +65,8 @@ Implemented message types:
 #define MSG_NEW_MOUSE 98
 #define MSG_SET_MODE 99
 
+
+
 // Message Valid Values
 // clang-format off
 const int MSG_NewMouse       = 98;
@@ -98,7 +100,7 @@ const char* const msg[] PROGMEM = {
 };
 // clang-format on
 
-inline void sendMessage(int type, unsigned long value) {
+inline void send_message(int type, unsigned long value) {
   // Serial.print(msg[type]);
   Serial.print('<');
   Serial.print(type);
@@ -106,4 +108,18 @@ inline void sendMessage(int type, unsigned long value) {
   Serial.print(value);
   Serial.print('>');
   Serial.println();
+}
+
+void send_run_time(unsigned long time) {
+  send_message(MSG_C1RunTime, time);
+  delay(20);
+  send_message(MSG_C1RunTime, time);
+}
+
+void send_maze_time(unsigned long time) {
+  send_message(MSG_CourseTimeMs, time);
+}
+
+void send_split_time(unsigned long time) {
+  send_message(MSG_C1SplitTime, time);
 }
