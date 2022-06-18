@@ -41,9 +41,9 @@ const int ENC_BTN = 2;
 const int ENC_A = A0;
 const int ENC_B = A1;
 
-const int BUTTON_START = A7;  // analogue only
-const int BUTTON_GOAL = A6;   // analogue only
-const int BUTTON_TOUCH = A3;
+const int BUTTON_ARM = A7;
+const int BUTTON_START = A6;  // analogue only
+const int BUTTON_GOAL = A3;   // analogue only
 const int BUTTON_RESET = A2;
 
 const int I2C_SDA = A4;
@@ -55,7 +55,7 @@ Button encoderButton(ENC_BTN, Button::ACTIVE_LOW);
 // Front panel buttons
 Button startButton(BUTTON_START, Button::ACTIVE_LOW, Button::ANALOG);
 Button goalButton(BUTTON_GOAL, Button::ACTIVE_LOW, Button::ANALOG);
-Button touchButton(BUTTON_TOUCH, Button::ACTIVE_LOW, Button::ANALOG);
+Button armButton(BUTTON_ARM, Button::ACTIVE_LOW, Button::ANALOG);
 Button resetButton(BUTTON_RESET, Button::ACTIVE_LOW, Button::ANALOG);
 
 /***
@@ -120,16 +120,15 @@ const uint32_t ONE_MINUTE = 60 * ONE_SECOND;
 const uint32_t ONE_HOUR = 60 * ONE_MINUTE;
 
 // Multi purpose states for the various contest state machines
-enum ContestState {
-  INIT = 0,
-  IDLE,
-  ARMED,
-  RUNNING,
-  GOAL,
-  RETURN,
-};
+const int ST_CALIBRATE = 0;  // calibrate gates,
+const int ST_WAITING = 1;    // looking for mouse in start cell,
+const int ST_ARMED = 2;      // Mouse seen in start cell,
+const int ST_STARTING = 3;   // Run started (but not cleared start gate yet)
+const int ST_RUNNING = 4;    // Run in progress,
+const int ST_GOAL = 5;       // Run to centre completed (finish gete triggered)
+const int ST_NEW_MOUSE = 6;  // Set up for new mouse
 
-ContestState contestState = IDLE;
+int contestState = ST_WAITING;
 
 /*
 David's states
@@ -167,7 +166,7 @@ void encoderUpdate() {
 void buttonsUpdate() {
   startButton.update();
   goalButton.update();
-  touchButton.update();
+  armButton.update();
   resetButton.update();
   encoderButton.update();
 }
@@ -291,6 +290,11 @@ ISR(TIMER2_COMPA_vect) {
 }
 /*********************************************** systick  end******************/
 
+void set_state(int new_state) {
+  contestState = new_state;
+  send_message(MSG_CURRENT_STATE, contestState);  // log current state to PC
+}
+
 /******************************************************** SETUP *****/
 void setup() {
   pinMode(LED_2, OUTPUT);
@@ -339,14 +343,14 @@ void setup() {
   digitalWrite(LED_4, 1);
   rtc.begin();
   rtc.adjust(DateTime(__DATE__, __TIME__));
-  radio.begin(10000);
+  radio.begin(9600);
 
   digitalWrite(LED_5, 1);
 
   lcd.clear();
   lcd.print(F("HELLO!"));
   delay(500);
-  flashLeds(4);
+  // flashLeds(4);
   showWelcomeScreen();
   runTimer.reset();
   mazeTimer.reset();
@@ -360,66 +364,63 @@ void setup() {
   digitalWrite(LED_3, 0);
   digitalWrite(LED_4, 0);
   digitalWrite(LED_5, 0);
-  contestState = INIT;
-  sendMessage(MSG_NEW_MOUSE, 0);
+  contestState = ST_NEW_MOUSE;
+  send_message(MSG_NEW_MOUSE, 0);
 }
 
 /*********************************************** process radio data ***/
-int errorCount = 0;
-int firstMisses = 0;
-uint32_t lockoutTime;
 
-char getRadioChar() {
-  while (radio.available() == 0) {
-  }
-  return radio.read();
-}
+// also used for gate ID
+enum ReaderState { RD_NONE, RD_WAIT, RD_HOME, RD_START, RD_GOAL, RD_TERM, RD_DONE, RD_ERROR };
 
-void handlePacket() {
-  char packet[20] = {' '};
-  packet[19] = 0;
-  for (int i = 0; i < 19; i++) {
-    char c = getRadioChar();
-    // Serial.print(c);
-    if (c == '#') {
+/*** TODO
+ * it may be necessary for the decoder to see two gate
+ * characters for confirmation.
+ */
+ReaderState reader_state = RD_WAIT;
+uint32_t rx_time;
+int gate_id = 0;
+void reader(char c) {
+  uint32_t time = millis();
+  switch (reader_state) {
+    case RD_WAIT:
+      gate_id = RD_NONE;
+      if (c >= 0x30 and c <= 0x37) {
+        reader_state = RD_GOAL;
+        rx_time = time - 2 * (c - 0x30);
+      } else if (c >= 0x40 and c <= 0x47) {
+        reader_state = RD_HOME;
+        rx_time = time - 2 * (c - 0x40);
+      } else if (c >= 0x60 and c <= 0x67) {
+        reader_state = RD_START;
+        rx_time = time - 2 * (c - 0x60);
+      }
       break;
-    }
-    packet[i] = c;
-  }
-  // return;
-  while (radio.available()) {
-    radio.read();
-  }
-
-  char check = '*';
-  for (int i = 0; i < 7; i++) {
-    check ^= packet[i];
-  }
-  check = check % 16 + 'a';
-  if (packet[7] != check) {
-    Serial.println(F("--------"));
-    lcd.setCursor(10, 2);
-    lcd.print('!');
-    errorCount++;
-    return;
-  }
-  lcd.setCursor(0, 3);
-  lcd.print(errorCount);
-
-  lcd.setCursor(5, 3);
-  lcd.print(firstMisses);
-
-  if (millis() > lockoutTime) {
-    int sequence = int(packet[1]) - '0';
-    lockoutTime = millis() + 600 - 50 * sequence;
-    if (sequence > 0) {
-      firstMisses++;
-    }
-    Serial.println(packet);
-    lcd.setCursor(0, 2);
-    lcd.print(packet);
-    lcd.setCursor(10, 2);
-    lcd.print(char(7));
+    case RD_GOAL:
+      if (c == '#') {
+        reader_state = RD_DONE;
+        gate_id = RD_GOAL;
+      }
+      break;
+    case RD_START:
+      if (c == '#') {
+        reader_state = RD_DONE;
+        gate_id = RD_START;
+      }
+      break;
+    case RD_HOME:
+      if (c == '#') {
+        reader_state = RD_DONE;
+        gate_id = RD_HOME;
+      }
+      break;
+    case RD_DONE:
+      reader_state = RD_WAIT;
+      break;
+    default:
+      reader_state = RD_ERROR;
+      gate_id = RD_NONE;
+      break;
   }
 }
 
@@ -461,23 +462,26 @@ void showSystemTime(int column, int line) {
 void showState() {
   lcd.setCursor(0, 0);
   switch (contestState) {
-    case INIT:
+    case ST_CALIBRATE:
+      lcd.print(F("CALIBRATE"));
+      break;
+    case ST_NEW_MOUSE:
       lcd.print(F("INIT     "));
       break;
-    case IDLE:
-      lcd.print(F("IDLE     "));
+    case ST_WAITING:
+      lcd.print(F("WAITING  "));
       break;
-    case ARMED:
+    case ST_ARMED:
       lcd.print(F("ARMED    "));
       break;
-    case RUNNING:
+    case ST_STARTING:
+      lcd.print(F("STARTING "));
+      break;
+    case ST_RUNNING:
       lcd.print(F("RUNNING  "));
       break;
-    case GOAL:
+    case ST_GOAL:
       lcd.print(F("GOAL     "));
-      break;
-    case RETURN:
-      lcd.print(F("RETURN   "));
       break;
     default:
       lcd.print(F("---------"));
@@ -496,64 +500,68 @@ void displayInit() {
 
 void mazeMachine() {
   if (resetButton.isPressed()) {
-    contestState = INIT;
+    set_state(ST_NEW_MOUSE);
   }
+
   showState();
+  // Serial.println(reader_state);
   switch (contestState) {
-    case INIT:
+    case ST_NEW_MOUSE:
       mazeTimer.reset();
       runTimer.reset();
       runCount = 0;
       bestTime = UINT32_MAX;
       displayInit();
-      contestState = IDLE;
+      set_state(ST_WAITING);
+      reader_state = RD_WAIT;
+      gate_id = RD_NONE;
       break;
-    case IDLE:
-      if (startButton.isPressed()) {
-        contestState = ARMED;
-      }
-      if (touchButton.isPressed()) {
-        contestState = ARMED;
-      }
-      break;
-    case ARMED:  // robot in start cell, ready to run
-      if (startButton.isPressed()) {
-        if (!mazeTimer.running()) {
+    case ST_WAITING:
+      if (armButton.isPressed() || gate_id == RD_HOME) {
+        set_state(ST_ARMED);
+        reader_state = RD_WAIT;
+        // gate_id = RD_NONE;
+        if (runCount == 0) {
+          send_maze_time(0);
           mazeTimer.restart();
-          sendMessage(MSG_MAZE_TIME, 0);
         }
-        sendMessage(MSG_SPLIT_TIME, 0);
+      }
+      break;
+    case ST_ARMED:  // robot in start cell, ready to run
+      if (startButton.isPressed() || gate_id == RD_START) {
+        send_split_time(0);
         runTimer.restart();
         runCount++;
-        contestState = RUNNING;
+        set_state(ST_RUNNING);
+        gate_id = RD_NONE;
       }
       break;
-    case RUNNING:  // robot on its way to the goal
-      if (goalButton.isPressed()) {
+    case ST_RUNNING:  // robot on its way to the goal
+      if (goalButton.isPressed() || gate_id == RD_GOAL) {
         runTimer.stop();
         uint32_t time = runTimer.time();
-        sendMessage(MSG_RUN_TIME_MS, time);
-        sendMessage(MSG_SPLIT_TIME, 0);
+        set_state(ST_GOAL);
+        send_run_time(time);
         if (time < bestTime) {
           bestTime = time;
           showTime(11, 3, bestTime);
         }
-        contestState = GOAL;
+        gate_id = RD_NONE;
       }
-      if (touchButton.isPressed()) {
+      if (armButton.isPressed() || gate_id == RD_HOME) {
         runTimer.stop();
-        // sendMessage(MSG_RUN_TIME_MS,runTimer.time());
-        contestState = ARMED;
+        runTimer.reset();
+        // send_message(MSG_RUN_TIME_MS,runTimer.time());
+        set_state(ST_ARMED);
+        gate_id = RD_NONE;
       }
       break;
-    case GOAL:  // root has entered the goal and could be returning or exploring
-      if (touchButton.isPressed()) {
+    case ST_GOAL:  // root has entered the goal and could be returning or exploring
+      if (armButton.isPressed() || gate_id == RD_HOME) {
         // robot is back in start cell or run is aborted
-        contestState = ARMED;
+        set_state(ST_ARMED);
+        gate_id = RD_NONE;
       }
-      break;
-    case RETURN:
-      // could be used to time additional exploration timing
       break;
     default:
       break;
@@ -568,7 +576,7 @@ void pintest() {
   if (goalButton.isPressed()) {
     Serial.println("goal");
   }
-  if (touchButton.isPressed()) {
+  if (armButton.isPressed()) {
     Serial.println("touch");
   }
   if (resetButton.isPressed()) {
@@ -582,17 +590,17 @@ void pintest() {
 
 void loop() {
   if (radio.available()) {
-    if (radio.read() == '*') {
-      handlePacket();
-    }
+    char c = radio.read();
+    reader(c);
   }
-  mazeMachine();
+
   if (Serial.available()) {
     char c = Serial.read();
     if (c == '>') {
-      contestState = INIT;
+      set_state(ST_NEW_MOUSE);
     }
   }
+  mazeMachine();
   if (millis() > displayUpdateTime) {
     displayUpdateTime += displayUpdateInterval;
     lcd.setCursor(17, 0);
