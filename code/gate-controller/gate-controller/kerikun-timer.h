@@ -172,10 +172,10 @@ class KeriTimer {
   Window w;
   Window::Contents wc;
   State state = IDLE;
-  int competition_limit_time_ms = 5 * 60 * 1000;
+  long int competition_limit_time_ms = 5 * 60 * 1000L;
   int begin_time_ms = -1;
   int start_time_ms = -1;
-  int prev_remain_time_ms = 100 * 60 * 1000;
+  long int prev_remain_time_ms = 100 * 60 * 1000L;
 
   void try_increment() {
     start_time_ms = -1;
