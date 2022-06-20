@@ -142,6 +142,33 @@ int contestState = ST_WAITING;
 
 
 ////////////////////////////////////////////////////////////////////////////
+// This is only going to work with an ATMega328 processor - take care  ////
+// The ATMega328P in ther arduino nano/un has a bootloader installed at the
+// top of flash. The default fuse values set aside just 515 bytes (256 words)
+// for the  bootloader so it must start at FLASH_END - 0x100 = 0x7E00
+// the fuses are also programmed so that the external reset vector points to
+// the bootloader rather than adress 0x0000.
+// The bootloader code sets the watchdog timer value to oone second. This,
+// if it receives no valid instructions in that time the processor is reset
+// to address 0x000 with all the registers (except MCUSR and SP) set to
+// their power on values. Note that some versions of the bootloader will
+// clear the MCUSR so that it is not possible to reliably detect the
+// cause of a reset.
+// The result of all this is that the Arduino can be reliably reset by simply
+// jumping to the bootloader. Assuming there is not a programmer trying to
+// send it commands of course.
+// This is also a good way to start a firmware update from the existing
+// firmware.
+////////////////////////////////////////////////////////////////////////////
+void reset_processor() {
+#if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
+  noInterrupts();
+
+  asm volatile("jmp 0x7E00");  // bootloader start address
+#endif
+}
+////////////////////////////////////////////////////////////////////////////
+
 int8_t gEncoderValue = 0;
 int8_t gEncoderClicks = 0;
 const int ENC_COUNTS_PER_CLICK = 4;
@@ -611,6 +638,9 @@ void loop() {
     if (c == '>') {
       set_state(ST_NEW_MOUSE);
     }
+  }
+  if (button_state == (BTN_BLUE + BTN_GREEN)) {
+    reset_processor();
   }
   mazeMachine();
   if (millis() > displayUpdateTime) {
