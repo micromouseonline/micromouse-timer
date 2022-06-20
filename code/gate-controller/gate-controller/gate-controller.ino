@@ -58,6 +58,15 @@ Button goalButton(BUTTON_GOAL, Button::ACTIVE_LOW, Button::ANALOG);
 Button armButton(BUTTON_ARM, Button::ACTIVE_LOW, Button::ANALOG);
 Button resetButton(BUTTON_RESET, Button::ACTIVE_LOW, Button::ANALOG);
 
+const uint8_t BTN_NONE = 0;
+const uint8_t BTN_GREEN = 1;
+const uint8_t BTN_YELLOW = 2;
+const uint8_t BTN_RED = 4;
+const uint8_t BTN_BLUE = 8;
+const uint8_t BTN_ENCODER = 16;
+
+volatile uint8_t button_state = BTN_NONE;
+
 /***
  * Note that the adress of the I2C expander depends on the exact
  * chip version and the theree address links.
@@ -169,6 +178,22 @@ void buttonsUpdate() {
   armButton.update();
   resetButton.update();
   encoderButton.update();
+  button_state = BTN_NONE;
+  if (armButton.isPressed()) {
+    button_state |= BTN_GREEN;
+  }
+  if (startButton.isPressed()) {
+    button_state |= BTN_YELLOW;
+  }
+  if (goalButton.isPressed()) {
+    button_state |= BTN_RED;
+  }
+  if (resetButton.isPressed()) {
+    button_state |= BTN_BLUE;
+  }
+  if (encoderButton.isPressed()) {
+    button_state |= BTN_ENCODER;
+  }
 }
 /*********************************************** BUTTONS END ******************/
 
