@@ -404,7 +404,7 @@ void setup() {
   digitalWrite(LED_4, 0);
   digitalWrite(LED_5, 0);
   contestState = ST_NEW_MOUSE;
-  send_message(MSG_NEW_MOUSE, 0);
+  send_message(MSG_NewMouse, 0);
 }
 
 /*********************************************** process radio data ***/
