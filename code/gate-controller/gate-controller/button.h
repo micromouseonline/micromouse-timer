@@ -15,8 +15,6 @@
  *
  */
 
-typedef void (*EventHandler)();
-
 class BasicButton {
  public:
   enum ActiveState { ACTIVE_LOW = 0, ACTIVE_HIGH = 1 };
@@ -36,7 +34,5 @@ class BasicButton {
   volatile uint8_t mState;
   Type mType;
 };
-
-
 
 #endif
