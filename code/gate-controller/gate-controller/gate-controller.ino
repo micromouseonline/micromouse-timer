@@ -95,7 +95,7 @@ PCF8563 rtc(0x51 * 2);
  * The radio is used only in receive mode here but the SoftwareSerial requires
  * two pins for the configuration. TX is not used
  */
-SoftwareSerial radio(7, 8);  // RX, TX
+SoftwareSerial radio(RADIO_RX, RADIO_TX);  // RX, TX
 
 Stopwatch mazeTimer;
 Stopwatch runTimer;
