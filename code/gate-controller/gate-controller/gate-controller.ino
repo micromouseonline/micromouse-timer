@@ -206,9 +206,6 @@ void buttonsUpdate() {
   if (resetButton.isPressed()) {
     button_state |= BTN_BLUE;
   }
-  if (encoderButton.isPressed()) {
-    button_state |= BTN_ENCODER;
-  }
 }
 /*********************************************** BUTTONS END ******************/
 
