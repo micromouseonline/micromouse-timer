@@ -104,6 +104,7 @@ const uint32_t ONE_SECOND = 1000L;
 const uint32_t ONE_MINUTE = 60 * ONE_SECOND;
 const uint32_t ONE_HOUR = 60 * ONE_MINUTE;
 
+const uint32_t TIME_TRIAL_LOCKOUT = 2000;
 // Multi purpose states for the various contest state machines
 const int ST_CALIBRATE = 0;  // calibrate gates,
 const int ST_WAITING = 1;    // looking for mouse in start cell,
@@ -188,7 +189,7 @@ void buttonsUpdate() {
 void show_trial_screen() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(F("TRIAL AUTO   Run:"));
+  lcd.print(F("TRIAL      Run:"));
   lcd.setCursor(0, 1);
   lcd.print(F("Trial Time"));
   lcd.setCursor(0, 2);
@@ -200,7 +201,7 @@ void show_trial_screen() {
 void showMazeScreen() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(F("MAZE AUTO   Run:"));
+  lcd.print(F("MAZE       Run:"));
   lcd.setCursor(0, 1);
   lcd.print(F("Maze Time"));
   lcd.setCursor(0, 2);
@@ -379,17 +380,79 @@ void displayInit() {
   lcd.print(F("--:--.---"));
   lcd.setCursor(17, 0);
   lcd.print(F("  "));
-  lcd.setCursor(10, 0);
-  lcd.write('-');
 }
 
-void trial_machine(){
+void trial_machine() {
+  if (resetButton.isPressed()) {
+    set_state(ST_NEW_MOUSE);
+    send_message(MSG_NewMouse, 0);
+  }
 
+  showState();
+  switch (contestState) {
+    case ST_NEW_MOUSE:
+      mazeTimer.reset();
+      runTimer.reset();
+      runCount = 0;
+      bestTime = UINT32_MAX;
+      displayInit();
+      set_state(ST_ARMED);
+      reader_state = RD_WAIT;
+      gate_id = RD_NONE;
+      break;
+
+    case ST_ARMED:  // robot in start cell, ready to run
+      if (startButton.isPressed() || gate_id == RD_START) {
+        if (runCount == 0) {
+          send_maze_time(0);
+          mazeTimer.restart();
+        }
+        send_split_time(0);
+        runTimer.restart();
+        runCount++;
+        set_state(ST_RUNNING);
+        gate_id = RD_NONE;
+      }
+      break;
+    case ST_RUNNING:  // robot on its way to the goal
+      if (runTimer.time() < TIME_TRIAL_LOCKOUT) {
+        break;
+      }
+      if (startButton.isPressed() || gate_id == RD_START) {
+        runTimer.stop();
+        uint32_t time = runTimer.time();
+        set_state(ST_GOAL);
+        send_run_time(time);
+        if (time < bestTime) {
+          bestTime = time;
+          showTime(11, 3, bestTime);
+        }
+        runCount++;
+        gate_id = RD_NONE;
+      }
+      if (armButton.isPressed()) {
+        runTimer.reset();
+        set_state(ST_ARMED);
+        gate_id = RD_NONE;
+      }
+      break;
+    case ST_GOAL:  // transient state to record run time
+      if (not startButton.isPressed()) {
+        set_state(ST_RUNNING);
+        runTimer.stop();
+        runTimer.restart();
+        send_split_time(0);
+        gate_id = RD_NONE;
+      }
+    default:
+      break;
+  }
 };
 
 void mazeMachine() {
   if (resetButton.isPressed()) {
     set_state(ST_NEW_MOUSE);
+    send_message(MSG_NewMouse, 0);
   }
 
   showState();
@@ -456,7 +519,6 @@ void mazeMachine() {
       break;
   }
 }
-
 
 int select_contest_type() {
   lcd.clear();
