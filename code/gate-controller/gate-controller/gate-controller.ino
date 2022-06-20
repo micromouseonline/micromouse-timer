@@ -139,22 +139,9 @@ const int ST_NEW_MOUSE = 6;  // Set up for new mouse
 
 int contestState = ST_WAITING;
 
-/*
-David's states
 
-enum SystemState {
-  STATE_POWER_UP = 0,
-  STATE_NO_MOUSE = 1,
-  STATE_MOUSE_IN_START = 2,
-  STATE_PASS_START_GATE = 3,
-  STATE_MOUSE_RUNNING = 4,
-  STATE_WAIT_FORCLEAR_GOAL_GATE = 5,
-  STATE_MOUSE_RETURNING = 6,
-  NUM_STATES
-};
-*/
 
-/***************************************************   Encoder */
+////////////////////////////////////////////////////////////////////////////
 int8_t gEncoderValue = 0;
 int8_t gEncoderClicks = 0;
 const int ENC_COUNTS_PER_CLICK = 4;
