@@ -225,29 +225,6 @@ void flashLeds(int count) {
   }
 }
 
-int showWelcomeScreen() {
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(F("Contest Timer  V0.9a"));
-  // lcd.setCursor(0, 1);
-  // lcd.print(F("  P Harrison 2022  "));
-  lcd.setCursor(0, 2);
-  lcd.print(F(" GREEN: MAZE EVENT"));
-  lcd.setCursor(0, 3);
-  lcd.print(F("YELLOW: TIME TRIAL"));
-  while (button_state == BTN_NONE) {
-    delay(50);
-  }
-  int type = CT_MAZE;
-  if (button_state == BTN_GREEN) {
-    type = CT_MAZE;
-  } else if (button_state == BTN_YELLOW) {
-    type = CT_TRIAL;
-  }
-  lcd.clear();
-  return type;
-}
-
 void show_trial_screen() {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -574,6 +551,27 @@ void pintest() {
   }
 }
 
+int select_contest_type() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(F("Contest Timer  V0.9a"));
+  lcd.setCursor(0, 2);
+  lcd.print(F(" GREEN: MAZE EVENT"));
+  lcd.setCursor(0, 3);
+  lcd.print(F("YELLOW: TIME TRIAL"));
+  while (button_state == BTN_NONE) {
+    delay(50);
+  }
+  int type = CT_MAZE;  // default
+  if (button_state == BTN_GREEN) {
+    type = CT_MAZE;
+  } else if (button_state == BTN_YELLOW) {
+    type = CT_TRIAL;
+  }
+  lcd.clear();
+  return type;
+}
+
 /******************************************************** SETUP *****/
 void setup() {
   pinMode(LED_2, OUTPUT);
@@ -630,7 +628,7 @@ void setup() {
   delay(1000);
 
   setupSystick();
-  contest_type = showWelcomeScreen();
+  contest_type = select_contest_type();
   runTimer.reset();
   mazeTimer.reset();
   switch (contest_type) {
