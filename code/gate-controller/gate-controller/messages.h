@@ -47,25 +47,6 @@ Implemented message types:
 ***/
 // clang-format on
 
-#define MSG_MAZE_TIME 1
-#define MSG_SPLIT_TIME 2
-#define MSG_RUN_TIME 3
-#define MSG_STATE_VAL 4
-#define MSG_RUN_TIME_MS 5
-#define MSG_SPLIT_TO_RUN 6
-#define MSG_F_TRIGGER 72
-#define MSG_S_TRIGGER 71
-#define MSG_C_TRIGGER 73
-#define MSG_SG_LEVEL 81
-#define MSG_SG_POT 82
-#define MSG_FG_LEVEL 83
-#define MSG_G_POT 84
-#define MSG_SC_LEVEL 85
-#define MSG_SC_POT 86
-#define MSG_NEW_MOUSE 98
-#define MSG_SET_MODE 99
-
-
 
 // Message Valid Values
 // clang-format off
