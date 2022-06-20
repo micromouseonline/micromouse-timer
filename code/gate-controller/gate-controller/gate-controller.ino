@@ -139,7 +139,8 @@ const int ST_NEW_MOUSE = 6;  // Set up for new mouse
 
 int contestState = ST_WAITING;
 
-
+enum { CT_NONE = 0, CT_MAZE, CT_TRIAL };
+int contest_type = CT_NONE;
 
 ////////////////////////////////////////////////////////////////////////////
 // This is only going to work with an ATMega328 processor - take care  ////
@@ -227,16 +228,39 @@ void flashLeds(int count) {
   }
 }
 
-void showWelcomeScreen() {
+int showWelcomeScreen() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(F("     Micromouse     "));
-  lcd.setCursor(0, 1);
-  lcd.print(F("   Contest Timer    "));
+  lcd.print(F("Contest Timer  V0.9a"));
+  // lcd.setCursor(0, 1);
+  // lcd.print(F("  P Harrison 2022  "));
   lcd.setCursor(0, 2);
-  lcd.print(F("--------------------"));
+  lcd.print(F(" GREEN: MAZE EVENT"));
   lcd.setCursor(0, 3);
-  lcd.print(F("  P Harrison 2020  "));
+  lcd.print(F("YELLOW: TIME TRIAL"));
+  while (button_state == BTN_NONE) {
+    delay(50);
+  }
+  int type = CT_MAZE;
+  if (button_state == BTN_GREEN) {
+    type = CT_MAZE;
+  } else if (button_state == BTN_YELLOW) {
+    type = CT_TRIAL;
+  }
+  lcd.clear();
+  return type;
+}
+
+void show_trial_screen() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(F("TRIAL AUTO   Run:"));
+  lcd.setCursor(0, 1);
+  lcd.print(F("Trial Time"));
+  lcd.setCursor(0, 2);
+  lcd.print(F("  Run Time"));
+  lcd.setCursor(0, 3);
+  lcd.print(F(" Best Time"));
 }
 
 void showMazeScreen() {
@@ -334,83 +358,11 @@ void set_state(int new_state) {
   send_message(MSG_CURRENT_STATE, contestState);  // log current state to PC
 }
 
-/******************************************************** SETUP *****/
-void setup() {
-  pinMode(LED_2, OUTPUT);
-  pinMode(LED_3, OUTPUT);
-  pinMode(LED_4, OUTPUT);
-  pinMode(LED_5, OUTPUT);
-
-  pinMode(ENC_A, INPUT_PULLUP);
-  pinMode(ENC_B, INPUT_PULLUP);
-
-  encoderButton.registerClickHandler(encoderClick);
-  encoderButton.registerPressHandler(encoderPress);
-  encoderButton.registerLongPressHandler(encoderLongPress);
-
-  Serial.begin(9600);
-  while (!Serial) {
-    ;  // Needed for native USB port only
-  }
-  Serial.println(F("\nHello"));
-
-  Wire.begin();
-  lcd.begin(20, 4);  //(backlight is on)
-  lcd.createChar(0, c0);
-  lcd.createChar(1, c1);
-  lcd.createChar(2, c2);
-  lcd.createChar(3, c3);
-  lcd.createChar(4, c4);
-  lcd.createChar(5, c5);
-  lcd.createChar(6, c6);
-  lcd.createChar(7, c7);
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print(F("SD card ... "));
-  Serial.println(F("Initialising SD card"));
-  sdCardInit(SD_SELECT, SD_DETECT);
-  // cardInfo();
-  lcd.print(F("Done"));
-
-  lcd.setCursor(0, 1);
-  lcd.print(F("RTC ... "));
-  rtc.begin();
-  lcd.print(F("Done"));
-  delay(2000);
-  /***
-   * The PCF8256 seems to have significant drift :(
-   * The time will get reset every build with this line but it is
-   * probably best to implement some host-mediated time setting function
-   */
-  // rtc.adjust(DateTime(__DATE__, __TIME__));
-  char buf[32];
-  Serial.println(rtc.now().tostr(buf));
-  radio.begin(9600);
-  digitalWrite(LED_5, 1);
-
-  lcd.clear();
-  // flashLeds(4);
-  showWelcomeScreen();
-  delay(2000);
-  runTimer.reset();
-  mazeTimer.reset();
-
-  showMazeScreen();
-
-  setupSystick();
-  contestState = ST_NEW_MOUSE;
-  send_message(MSG_NewMouse, 0);
-}
-
 /*********************************************** process radio data ***/
 
 // also used for gate ID
 enum ReaderState { RD_NONE, RD_WAIT, RD_HOME, RD_START, RD_GOAL, RD_TERM, RD_DONE, RD_ERROR };
 
-/*** TODO
- * it may be necessary for the decoder to see two gate
- * characters for confirmation.
- */
 ReaderState reader_state = RD_WAIT;
 uint32_t rx_time;
 int gate_id = 0;
@@ -532,6 +484,10 @@ void displayInit() {
   lcd.write('-');
 }
 
+void trial_machine(){
+
+};
+
 void mazeMachine() {
   if (resetButton.isPressed()) {
     set_state(ST_NEW_MOUSE);
@@ -620,6 +576,83 @@ void pintest() {
     Serial.println("enc");
   }
 }
+
+/******************************************************** SETUP *****/
+void setup() {
+  pinMode(LED_2, OUTPUT);
+  pinMode(LED_3, OUTPUT);
+  pinMode(LED_4, OUTPUT);
+  pinMode(LED_5, OUTPUT);
+
+  pinMode(ENC_A, INPUT_PULLUP);
+  pinMode(ENC_B, INPUT_PULLUP);
+
+  encoderButton.registerClickHandler(encoderClick);
+  encoderButton.registerPressHandler(encoderPress);
+  encoderButton.registerLongPressHandler(encoderLongPress);
+
+  Serial.begin(9600);
+  while (!Serial) {
+    ;  // Needed for native USB port only
+  }
+  Serial.println(F("CONTEST_ TIMER V0.9a"));
+
+  Wire.begin();
+  lcd.begin(20, 4);  //(backlight is on)
+  lcd.createChar(0, c0);
+  lcd.createChar(1, c1);
+  lcd.createChar(2, c2);
+  lcd.createChar(3, c3);
+  lcd.createChar(4, c4);
+  lcd.createChar(5, c5);
+  lcd.createChar(6, c6);
+  lcd.createChar(7, c7);
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print(F("SD card ... "));
+  Serial.println(F("Initialising SD card"));
+  sdCardInit(SD_SELECT, SD_DETECT);
+  lcd.print(F("Done"));
+
+  lcd.setCursor(0, 1);
+  lcd.print(F("RTC ...     "));
+  rtc.begin();
+  lcd.print(F("Done"));
+  /***
+   * The PCF8256 seems to have significant drift :(
+   * The time will get reset every build with this line but it is
+   * probably best to implement some host-mediated time setting function
+   */
+  // rtc.adjust(DateTime(__DATE__, __TIME__));
+  char buf[32];
+  Serial.println(rtc.now().tostr(buf));
+  lcd.setCursor(0, 2);
+  lcd.print(F("RADIO ...   "));
+  radio.begin(9600);
+  lcd.print(F("Done"));
+  delay(1000);
+
+  setupSystick();
+  contest_type = showWelcomeScreen();
+  runTimer.reset();
+  mazeTimer.reset();
+  switch (contest_type) {
+    case CT_MAZE:
+      showMazeScreen();
+      break;
+    case CT_TRIAL:
+      show_trial_screen();
+      break;
+    default:
+      lcd.clear();
+      lcd.print(F("NO CONTEST TYPE"));
+      break;
+  }
+
+  contestState = ST_NEW_MOUSE;
+  send_message(MSG_NewMouse, 0);
+}
+
 /*********************************************** main loop ******************/
 
 void loop() {
@@ -637,8 +670,14 @@ void loop() {
   if (button_state == (BTN_BLUE + BTN_GREEN)) {
     reset_processor();
   }
-  mazeMachine();
-  if (millis() > displayUpdateTime) {
+  if (contest_type == CT_MAZE) {
+    mazeMachine();
+  } else if (contest_type == CT_TRIAL) {
+    trial_machine();
+  } else {
+    // do nothing
+  }
+  if (contest_type != CT_NONE && millis() > displayUpdateTime) {
     displayUpdateTime += displayUpdateInterval;
     lcd.setCursor(17, 0);
     lcd.print(runCount);
