@@ -27,12 +27,12 @@
 
 ///////////////////////////////////////////////////////////////////
 // click button on the encoder
-Button encoderButton(ENC_BTN, Button::ACTIVE_LOW);
+BasicButton encoderButton(ENC_BTN, BasicButton::ACTIVE_LOW);
 // Front panel buttons
-Button startButton(BUTTON_START, Button::ACTIVE_LOW, Button::ANALOG);
-Button goalButton(BUTTON_GOAL, Button::ACTIVE_LOW, Button::ANALOG);
-Button armButton(BUTTON_ARM, Button::ACTIVE_LOW, Button::ANALOG);
-Button resetButton(BUTTON_RESET, Button::ACTIVE_LOW, Button::ANALOG);
+BasicButton startButton(BUTTON_START, BasicButton::ACTIVE_LOW, BasicButton::ANALOG);
+BasicButton goalButton(BUTTON_GOAL, BasicButton::ACTIVE_LOW, BasicButton::ANALOG);
+BasicButton armButton(BUTTON_ARM, BasicButton::ACTIVE_LOW, BasicButton::ANALOG);
+BasicButton resetButton(BUTTON_RESET, BasicButton::ACTIVE_LOW, BasicButton::ANALOG);
 
 const uint8_t BTN_NONE = 0;
 const uint8_t BTN_GREEN = 1;
@@ -492,10 +492,6 @@ void setup() {
 
   pinMode(ENC_A, INPUT_PULLUP);
   pinMode(ENC_B, INPUT_PULLUP);
-
-  encoderButton.registerClickHandler(encoderClick);
-  encoderButton.registerPressHandler(encoderPress);
-  encoderButton.registerLongPressHandler(encoderLongPress);
 
   Serial.begin(9600);
   while (!Serial) {
