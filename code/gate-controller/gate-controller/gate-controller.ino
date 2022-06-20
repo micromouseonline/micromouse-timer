@@ -348,16 +348,13 @@ void setup() {
   encoderButton.registerPressHandler(encoderPress);
   encoderButton.registerLongPressHandler(encoderLongPress);
 
-  // NOTE: speed changes set in config must be saved to EEPROM to avoid problems with reset-on-connect
   Serial.begin(9600);
-  // Serial.begin(57600);
   while (!Serial) {
     ;  // Needed for native USB port only
   }
-  Serial.println("Hello");
-  digitalWrite(LED_2, 1);
-  Wire.begin();
+  Serial.println(F("\nHello"));
 
+  Wire.begin();
   lcd.begin(20, 4);  //(backlight is on)
   lcd.createChar(0, c0);
   lcd.createChar(1, c1);
@@ -369,40 +366,38 @@ void setup() {
   lcd.createChar(7, c7);
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(F("Initialising SD card"));
-  digitalWrite(LED_3, 1);
-  // sdCardInit(SD_SELECT, SD_DETECT);
+  lcd.print(F("SD card ... "));
+  Serial.println(F("Initialising SD card"));
+  sdCardInit(SD_SELECT, SD_DETECT);
   // cardInfo();
+  lcd.print(F("Done"));
 
+  lcd.setCursor(0, 1);
+  lcd.print(F("RTC ... "));
+  rtc.begin();
+  lcd.print(F("Done"));
+  delay(2000);
   /***
    * The PCF8256 seems to have significant drift :(
    * The time will get reset every build with this line but it is
    * probably best to implement some host-mediated time setting function
    */
-  digitalWrite(LED_4, 1);
-  rtc.begin();
-  rtc.adjust(DateTime(__DATE__, __TIME__));
+  // rtc.adjust(DateTime(__DATE__, __TIME__));
+  char buf[32];
+  Serial.println(rtc.now().tostr(buf));
   radio.begin(9600);
-
   digitalWrite(LED_5, 1);
 
   lcd.clear();
-  lcd.print(F("HELLO!"));
-  delay(500);
   // flashLeds(4);
   showWelcomeScreen();
+  delay(2000);
   runTimer.reset();
   mazeTimer.reset();
-  setupSystick();
-  while (!encoderButton.isPressed() && !resetButton.isPressed()) {
-  }
 
   showMazeScreen();
 
-  digitalWrite(LED_2, 0);
-  digitalWrite(LED_3, 0);
-  digitalWrite(LED_4, 0);
-  digitalWrite(LED_5, 0);
+  setupSystick();
   contestState = ST_NEW_MOUSE;
   send_message(MSG_NewMouse, 0);
 }
