@@ -457,24 +457,6 @@ void mazeMachine() {
   }
 }
 
-void pintest() {
-  if (startButton.isPressed()) {
-    Serial.println("start");
-  }
-
-  if (goalButton.isPressed()) {
-    Serial.println("goal");
-  }
-  if (armButton.isPressed()) {
-    Serial.println("touch");
-  }
-  if (resetButton.isPressed()) {
-    Serial.println("reset");
-  }
-  if (encoderButton.isPressed()) {
-    Serial.println("enc");
-  }
-}
 
 int select_contest_type() {
   lcd.clear();
