@@ -20,34 +20,10 @@
 #include "RTClib.h"
 #include "basic-timer.h"
 #include "button.h"
-#include "kerikun-timer.h"
 #include "messages.h"
+#include "pins.h"
 #include "stopwatch.h"
-/// Pin Assignments
-const int LED_2 = 3;
-const int LED_3 = 4;
-const int LED_4 = 5;
-const int LED_5 = 6;
-
-const int RADIO_RX = 7;
-const int RADIO_TX = 8;
-const int SD_DETECT = 9;
-const int SD_SELECT = 10;
-const int SD_MOSI = 11;
-const int SD_MISO = 12;
-const int SD_SCK = 13;
-
-const int ENC_BTN = 2;
-const int ENC_A = A0;
-const int ENC_B = A1;
-
-const int BUTTON_ARM = A7;
-const int BUTTON_START = A6;  // analogue only
-const int BUTTON_GOAL = A3;   // analogue only
-const int BUTTON_RESET = A2;
-
-const int I2C_SDA = A4;
-const int I2C_SCL = A5;
+#include "utils.h"
 
 ///////////////////////////////////////////////////////////////////
 // click button on the encoder
@@ -209,22 +185,6 @@ void buttonsUpdate() {
 }
 /*********************************************** BUTTONS END ******************/
 
-/*********************************************** UTILITIES ******************/
-void flashLeds(int count) {
-  while (count--) {
-    digitalWrite(LED_2, 1);
-    digitalWrite(LED_3, 1);
-    digitalWrite(LED_4, 1);
-    digitalWrite(LED_5, 1);
-    delay(100);
-    digitalWrite(LED_2, 0);
-    digitalWrite(LED_3, 0);
-    digitalWrite(LED_4, 0);
-    digitalWrite(LED_5, 0);
-    delay(100);
-  }
-}
-
 void show_trial_screen() {
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -259,42 +219,7 @@ void encoderClick() {
 
 void encoderLongPress() {
   Serial.println(F("Long press"));
-  // i2cScan();
 }
-
-void i2cScan() {
-  byte error, address;
-  int nDevices;
-
-  nDevices = 0;
-  for (address = 1; address < 127; address++) {
-    // The i2c_scanner uses the return value of
-    // the Write.endTransmisstion to see if
-    // a device did acknowledge to the address.
-    Wire.beginTransmission(address);
-    error = Wire.endTransmission();
-
-    if (error == 0) {
-      Serial.print("I2C device found at address 0x");
-      if (address < 16)
-        Serial.print("0");
-      Serial.print(address, HEX);
-      Serial.println("  !");
-
-      nDevices++;
-    } else if (error == 4) {
-      Serial.print("Unknown error at address 0x");
-      if (address < 16)
-        Serial.print("0");
-      Serial.println(address, HEX);
-    }
-  }
-  if (nDevices == 0)
-    Serial.println("No I2C devices found\n");
-  else
-    Serial.println("done\n");
-}
-/*********************************************** UTILITIES END***************/
 
 /*********************************************** systick ******************/
 /***
@@ -569,6 +494,10 @@ int select_contest_type() {
     type = CT_TRIAL;
   }
   lcd.clear();
+  while (button_state != BTN_NONE) {
+    delay(100);
+  }
+  delay(500);
   return type;
 }
 
@@ -613,12 +542,6 @@ void setup() {
   lcd.print(F("RTC ...     "));
   rtc.begin();
   lcd.print(F("Done"));
-  /***
-   * The PCF8256 seems to have significant drift :(
-   * The time will get reset every build with this line but it is
-   * probably best to implement some host-mediated time setting function
-   */
-  // rtc.adjust(DateTime(__DATE__, __TIME__));
   char buf[32];
   Serial.println(rtc.now().tostr(buf));
   lcd.setCursor(0, 2);
