@@ -253,7 +253,7 @@ enum ReaderState { RD_NONE, RD_WAIT, RD_HOME, RD_START, RD_GOAL, RD_TERM, RD_DON
 ReaderState reader_state = RD_WAIT;
 uint32_t rx_time;
 int gate_id = 0;
-void reader(char c) {
+void gate_reader(char c) {
   uint32_t time = millis();
   switch (reader_state) {
     case RD_WAIT:
@@ -602,7 +602,7 @@ void setup() {
 void loop() {
   if (radio.available()) {
     char c = radio.read();
-    reader(c);
+    gate_reader(c);
   }
 
   if (Serial.available()) {
