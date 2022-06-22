@@ -251,7 +251,7 @@ void set_state(int new_state) {
 enum ReaderState { RD_NONE, RD_WAIT, RD_HOME, RD_START, RD_GOAL, RD_TERM, RD_DONE, RD_ERROR };
 
 ReaderState reader_state = RD_WAIT;
-uint32_t rx_time;
+uint32_t gate_message_time;
 int gate_id = 0;
 void gate_reader(char c) {
   uint32_t time = millis();
@@ -260,13 +260,13 @@ void gate_reader(char c) {
       gate_id = RD_NONE;
       if (c >= 0x30 and c <= 0x37) {
         reader_state = RD_GOAL;
-        rx_time = time - 2 * (c - 0x30);
+        gate_message_time = time - 2 * (c - 0x30);
       } else if (c >= 0x40 and c <= 0x47) {
         reader_state = RD_HOME;
-        rx_time = time - 2 * (c - 0x40);
+        gate_message_time = time - 2 * (c - 0x40);
       } else if (c >= 0x60 and c <= 0x67) {
         reader_state = RD_START;
-        rx_time = time - 2 * (c - 0x60);
+        gate_message_time = time - 2 * (c - 0x60);
       }
       break;
     case RD_GOAL:
