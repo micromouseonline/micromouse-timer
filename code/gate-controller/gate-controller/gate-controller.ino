@@ -440,6 +440,7 @@ void mazeMachine() {
   if (resetButton.isPressed()) {
     set_state(ST_NEW_MOUSE);
     send_message(MSG_NewMouse, 0);
+    send_maze_time(0);
   }
 
   showState();
