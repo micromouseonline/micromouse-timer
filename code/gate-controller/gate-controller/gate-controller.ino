@@ -18,7 +18,6 @@
 #include <Wire.h>
 #include <sdcard.h>
 #include "RTClib.h"
-#include "basic-timer.h"
 #include "button.h"
 #include "messages.h"
 #include "pins.h"
@@ -208,18 +207,6 @@ void showMazeScreen() {
   lcd.print(F(" Run Time"));
   lcd.setCursor(0, 3);
   lcd.print(F("Best Time"));
-}
-
-// test functions for encoder button
-void encoderPress() {
-  Serial.println(F("press"));
-}
-void encoderClick() {
-  Serial.println(F("click"));
-}
-
-void encoderLongPress() {
-  Serial.println(F("Long press"));
 }
 
 /*********************************************** systick ******************/
@@ -472,11 +459,11 @@ void mazeMachine() {
       if (armButton.isPressed() || gate_id == RD_HOME) {
         set_state(ST_ARMED);
         reader_state = RD_WAIT;
-        // gate_id = RD_NONE;
         if (runCount == 0) {
           send_maze_time(0);
           mazeTimer.restart();
         }
+        gate_id = RD_NONE;
       }
       break;
     case ST_ARMED:  // robot in start cell, ready to run
@@ -503,7 +490,6 @@ void mazeMachine() {
       if (armButton.isPressed() || gate_id == RD_HOME) {
         runTimer.stop();
         runTimer.reset();
-        // send_message(MSG_RUN_TIME_MS,runTimer.time());
         set_state(ST_ARMED);
         gate_id = RD_NONE;
       }
