@@ -373,6 +373,7 @@ void trial_machine() {
   if (resetButton.isPressed()) {
     set_state(ST_NEW_MOUSE);
     send_message(MSG_NewMouse, 0);
+    send_maze_time(0);
   }
 
   showState();
@@ -390,6 +391,7 @@ void trial_machine() {
 
     case ST_ARMED:  // robot in start cell, ready to run
       if (startButton.isPressed() || gate_id == RD_START) {
+        gate_id = RD_NONE;
         if (runCount == 0) {
           send_maze_time(0);
           mazeTimer.restart();
@@ -398,7 +400,6 @@ void trial_machine() {
         runTimer.restart();
         runCount++;
         set_state(ST_RUNNING);
-        gate_id = RD_NONE;
       }
       break;
     case ST_RUNNING:  // robot on its way to the goal
@@ -406,27 +407,28 @@ void trial_machine() {
         break;
       }
       if (startButton.isPressed() || gate_id == RD_START) {
+        gate_id = RD_NONE;
         runTimer.stop();
-        uint32_t time = runTimer.time();
         set_state(ST_GOAL);
+        uint32_t time = runTimer.time();
         send_run_time(time);
         if (time < bestTime) {
           bestTime = time;
           showTime(11, 3, bestTime);
         }
         runCount++;
-        gate_id = RD_NONE;
       }
       if (armButton.isPressed()) {
         runTimer.reset();
         set_state(ST_ARMED);
-        gate_id = RD_NONE;
+        gate_id = RD_NONE;  // is this needed
       }
       break;
     case ST_GOAL:  // transient state to record run time
+      // manual timing may see the button held down for a while
       if (not startButton.isPressed()) {
         set_state(ST_RUNNING);
-        runTimer.stop();
+        // runTimer.stop();
         runTimer.restart();
         send_split_time(0);
         gate_id = RD_NONE;
