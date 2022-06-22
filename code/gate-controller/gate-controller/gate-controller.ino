@@ -497,7 +497,7 @@ void mazeMachine() {
         gate_id = RD_NONE;
       }
       break;
-    case ST_GOAL:  // root has entered the goal and could be returning or exploring
+    case ST_GOAL:
       if (armButton.isPressed() || gate_id == RD_HOME) {
         // robot is back in start cell or run is aborted
         set_state(ST_ARMED);
