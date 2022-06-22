@@ -45,18 +45,15 @@ Implemented message types:
                                                                   CALIBRATION (start returning calibration data)
 
 ***/
-// clang-format on
-
 
 // Message Valid Values
-// clang-format off
 const int MSG_NewMouse       = 98;
 const int MSG_CURRENT_STATE  =  4;
 const int MSG_C1SplitTime    = 12;
 const int MSG_C1RunTime      = 13;
 const int MSG_CourseTimeMs   = 30;
 
-const int MSG_SetMode        = 99;  // not implemented
+const int MSG_SetMode        = 99;
 
 const int MSG_SGLevel        = 81;
 const int MSG_SGPot          = 82;
@@ -67,22 +64,11 @@ const int MSG_SCPot          = 86;
 const int MSG_STrigger       = 71;
 const int MSG_FTrigger       = 72;
 const int MSG_CTrigger       = 73;
-// clang-format on
 
-// clang-format off
-const char* const msg[] PROGMEM = {
-    "  none             ",
-    "  MSG_MAZE_TIME    ",
-    "  MSG_SPLIT_TIME   ",
-    "  MSG_RUN_TIME     ",
-    "  MSG_STATE_VAL    ",
-    "  MSG_RUN_TIME_MS  ",
-    "  MSG_SPLIT_TO_RUN ",
-};
+
 // clang-format on
 
 inline void send_message(int type, unsigned long value) {
-  // Serial.print(msg[type]);
   Serial.print('<');
   Serial.print(type);
   Serial.print(',');
