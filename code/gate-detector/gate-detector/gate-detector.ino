@@ -2,7 +2,7 @@
 #include "SoftwareSerial.h"
 #include "digitalWriteFast.h"
 
-#define DEBUG 1
+#define DEBUG 0
 const int sideSensorPin = A0;
 const int endSensorPin = A1;
 const int SIDE_GATE = 0;
@@ -68,11 +68,13 @@ class ExpFilter {
 
   float value() { return mValue; }
 
+  void set_value(float value) { mValue = value; }
+
   float operator()() { return mValue; }
 
  private:
-  float mAlpha = 1.0f;
-  float mValue = 0;
+  volatile float mAlpha = 1.0f;
+  volatile float mValue = 0;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -91,23 +93,34 @@ class GateSensor {
       slow.update(mInput);
     }
     fast.update(mInput);
+    if (slow.value() < 10) {
+      return;
+    }
     mDiff = slow.value() - fast.value();
     if (fast.value() < 0.25 * slow.value()) {
       mInterrupted = true;
     }
     if (fast.value() > 0.75 * slow.value()) {
+      arm();
       mInterrupted = false;
       mMessageSent = false;
     }
   }
 
+  void arm() { mArmed = true; }
+
+  void disarm() { mArmed = false; }
+
+  bool armed() { return mArmed; }
+
   int mSensorPin;
-  float mInput;
-  float mDiff;
+  volatile float mInput;
+  volatile float mDiff;
   ExpFilter slow;
   ExpFilter fast;
-  bool mInterrupted = false;
-  bool mMessageSent = false;
+  volatile bool mInterrupted = false;
+  volatile bool mMessageSent = false;
+  volatile bool mArmed = true;
 };
 
 ////////////////////////////////////////////////////////////////////////
@@ -115,8 +128,8 @@ class GateSensor {
 SoftwareSerial radio(RADIO_NC, RADIO_DATA);  // RX, TX
 
 const uint32_t LOCKOUT_TIME = 200;
-const uint8_t HOME_BASE = 0x40;
-const uint8_t START_BASE = 0x60;
+const uint8_t HOME_BASE = 0x41;
+const uint8_t START_BASE = 0x61;
 const uint8_t GOAL_BASE = 0x30;
 // assume this is the start gate detector
 uint8_t side_sensor_base = HOME_BASE;
@@ -164,7 +177,9 @@ void systickInit() {
 
 ISR(TIMER2_COMPA_vect) {
   endSensor.update();
-  sideSensor.update();
+  if (gateID == 0) {
+    sideSensor.update();
+  }
 }
 
 /***
@@ -179,12 +194,16 @@ ISR(TIMER2_COMPA_vect) {
  * 1.04ms to send. Higher baud rates are likely to be
  * less reliable over longer distances.
  */
-void send_byte(uint8_t c, uint32_t time = 2000L) {
+void send_byte(uint8_t c, uint32_t time = 3000L) {
   uint32_t start = micros();
   radio.write(c);
   while (micros() - start < time) {
     // do nothing
   }
+}
+
+void send_string(char* s) {
+  radio.println(s);
 }
 
 /***
@@ -203,28 +222,53 @@ void send_byte(uint8_t c, uint32_t time = 2000L) {
  * just 18ms to transmit
  *
  */
+
+uint32_t last_trigger_time = millis();
 void send_trigger(uint8_t base) {
   digitalWriteFast(LED_BUILTIN, 1);
   digitalWrite(RADIO_DATA, 1);
   digitalWrite(RADIO_PDN, 1);
+  delayMicroseconds(1000);
   digitalWrite(RADIO_TX, 1);
   // allow the transmitter to stabilise
-  delayMicroseconds(500);
+  delayMicroseconds(1000);
   // Send the receiver a few transitions to
   // get itself in sync. Finish with carrier on
   // because the serial transmission will begin with a
   // zero start bit.
-  send_byte(0b10101011);
-  for (uint8_t i = 0; i < 6; i++) {
-    send_byte(base + i);
+  switch (base) {
+    case GOAL_BASE:
+      radio.println("U012345#####");
+      break;
+    case HOME_BASE:
+      radio.println("UABCDEF#####");
+      break;
+    case START_BASE:
+      radio.println("Uabcdef#####");
+      break;
   }
-  send_byte('#');
-  send_byte('#');
+  // send_byte('U');
+  // // send_byte('U');
+  // for (uint8_t i = 0; i < 4; i++) {
+  //   send_byte(base + i);
+  // }
+  // send_byte('#');
+  // send_byte('#');
+  // send_byte('#');
+  // send_byte('#');
+  delayMicroseconds(500);
   // do we need to wait a little while before shutting down?
   digitalWrite(RADIO_TX, 0);
   digitalWrite(RADIO_PDN, 0);
   digitalWriteFast(LED_BUILTIN, 0);
+  uint32_t now = millis();
+  uint32_t elapsed = millis() - last_trigger_time;
+  last_trigger_time = now;
+  Serial.println(elapsed);
 }
+
+uint32_t next_update_time = millis();
+uint32_t debug_update_interval = 50;
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -241,7 +285,7 @@ void setup() {
   digitalWrite(RADIO_TX, 1);
   digitalWrite(RADIO_PDN, 1);
   Serial.begin(115200);
-  radio.begin(9600);
+  radio.begin(5000);
   gateID = digitalRead(GATE_ID_PIN0) << 3;
   gateID += digitalRead(+GATE_ID_PIN1) << 2;
   gateID += digitalRead(+GATE_ID_PIN2) << 1;
@@ -266,39 +310,32 @@ void setup() {
   }
 }
 
-uint32_t next_update_time = millis();
-uint32_t update_interval = 50;
-
 void loop() {
   if (DEBUG) {
-    if (millis() - next_update_time > update_interval) {
-      next_update_time += update_interval;
+    if (millis() - next_update_time > debug_update_interval) {
+      next_update_time += debug_update_interval;
       // Serial.print(endSensor.slow.value(), 1);
       Serial.print(endSensor.slow.value(), 1);
       Serial.print('\t');
       Serial.print(endSensor.fast.value(), 1);
-      Serial.print('\t');
-      Serial.print(endSensor.mInterrupted, 1);
-      Serial.print('\t');
-      Serial.print(endSensor.mMessageSent, 1);
-      Serial.print('\t');
-      Serial.print(sideSensor.slow.value(), 1);
-      Serial.print('\t');
-      Serial.print(sideSensor.fast.value(), 1);
-      Serial.print('\t');
-      Serial.print(sideSensor.mInterrupted, 1);
-      Serial.print('\t');
-      Serial.print(sideSensor.mMessageSent, 1);
-      Serial.print('\t');
+      if (gateID == 0) {
+        Serial.print('\t');
+        Serial.print(sideSensor.slow.value(), 1);
+        Serial.print('\t');
+        Serial.print(sideSensor.fast.value(), 1);
+      }
       Serial.println();
     }
   }
-  if (endSensor.mInterrupted) {
+  if (endSensor.armed() && endSensor.mInterrupted) {
+    endSensor.disarm();
     if (not endSensor.mMessageSent) {
       send_trigger(end_sensor_base);
       endSensor.mMessageSent = true;
     }
-  } else if (sideSensor.mInterrupted) {
+
+  } else if (sideSensor.armed() && sideSensor.mInterrupted) {
+    sideSensor.disarm();
     if (not sideSensor.mMessageSent) {
       send_trigger(side_sensor_base);
       sideSensor.mMessageSent = true;
