@@ -612,7 +612,9 @@ void radio_test(char c) {
 int select_contest_type() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(F("Contest Timer  V0.9a"));
+  lcd.print(F("CONTEST TIMER V0.2"));
+  lcd.setCursor(0, 1);
+  lcd.print(F("   RED: RADIO TEST"));
   lcd.setCursor(0, 2);
   lcd.print(F(" GREEN: MAZE EVENT"));
   lcd.setCursor(0, 3);
@@ -653,7 +655,7 @@ void setup() {
   while (!Serial) {
     ;  // Needed for native USB port only
   }
-  Serial.println(F("CONTEST_ TIMER V0.9a"));
+  Serial.println(F("CONTEST_ TIMER V0.2"));
 
   Wire.begin();
   lcd.begin(20, 4);  //(backlight is on)
