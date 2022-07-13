@@ -96,7 +96,7 @@ class GateSensor {
     if (slow.value() < 10) {
       return;
     }
-    mDiff = slow.value() - fast.value();
+    mDiff = fabs(fast.value() - slow.value());
     if (fast.value() < 0.25 * slow.value()) {
       mInterrupted = true;
     }
@@ -271,15 +271,23 @@ void setup() {
   gateID += digitalRead(GATE_ID_PIN3);
   analogueInit();
   systickInit();
-  delay(20);
   Serial.print(F("GATE ID: "));
   Serial.println(gateID);
-  while (endSensor.mDiff < -0.25 or sideSensor.mDiff < -0.25) {
+  while (endSensor.mDiff < 1.0 and sideSensor.mDiff < 1.0) {
     digitalWrite(LED_BUILTIN, 1);
-    delay(100);
+    delay(20);
     digitalWrite(LED_BUILTIN, 0);
-    delay(100);
+    delay(50);
   }
+  while (endSensor.mDiff > 1.0 or sideSensor.mDiff > 1.0) {
+    digitalWrite(LED_BUILTIN, 1);
+    delay(20);
+    digitalWrite(LED_BUILTIN, 0);
+    delay(50);
+  }
+  Serial.println(endSensor.fast.value());
+  Serial.println(sideSensor.fast.value());
+  Serial.println(F("RDY"));
   if (gateID == 0) {  // the start and home gates
     side_sensor_base = HOME_BASE;
     end_sensor_base = START_BASE;
