@@ -138,20 +138,6 @@ uint8_t end_sensor_base = START_BASE;
 GateSensor endSensor(endSensorPin);
 GateSensor sideSensor(sideSensorPin);
 
-void sendString(char* s) {
-  // digitalWrite(LED_BUILTIN,1);
-  digitalWrite(RADIO_DATA, 1);
-  digitalWrite(RADIO_PDN, 1);
-  digitalWrite(RADIO_TX, 1);
-  // allow the transmitter to stabilise
-  delayMicroseconds(500);
-  while (char c = *s++) {
-    radio.write(c);
-  }
-  digitalWrite(RADIO_TX, 0);
-  digitalWrite(RADIO_PDN, 0);
-}
-
 void analogueInit() {
   // increase speed of ADC conversions
   // by changing the clock prescaler from 128 to 32
@@ -183,27 +169,42 @@ ISR(TIMER2_COMPA_vect) {
 }
 
 /***
- * Send a single byte and ensure the appropriate time
- * passes before return. micros() overflows every 71 minutes.
- * Individual bytes are paced so that each takes the same
- * amount of time to send. In this way, the receiver can
- * deduce the time relative to the packet start simply by
- * examining a single valid byte in the received message.
- * The default pacing is one character every 3ms. With a
- * baud rate of 9600, a single byte sould normally take
- * 1.04ms to send. Higher baud rates are likely to be
- * less reliable over longer distances.
+ * In an attempt to get reliable timing form the software serial
+ * strings are sent by calling directly the write method.
+ *
+ * At a baud rate of 5000 Baud, each character should take 2ms
+ * to go out. Placing a 1ms delay between characters will let
+ * the receiver calculate, from the character received, the time
+ * that the first character was sent since they should be arriving
+ * every 3ms.
+ *
+ * Software serial turns off interrupts while it is sending a byte
+ * in order to get good timing.
+ *
+ * Here, interrupts are turned off for the duration of the entire
+ * string to try and get good inter-character timing as well.
+ *
+ * Even so, there will be some jitter. Observations indicate that
+ * this amounts to less than 250us variation between characters.
+ *
+ * Although a longer interval might make the system more resistant
+ * to interference, it seems a good idea to get the entire packet
+ * out in a short space of time. Packets contain 13 characters and
+ * so should take up about 40ms transmission time.
+ *
+ * If messages are missed it might be a good idea to implement some
+ * kind of repeat although that would considerably complicate the
+ * implied timing scheme used here.
+ *
  */
-void send_byte(uint8_t c, uint32_t time = 3000L) {
-  uint32_t start = micros();
-  radio.write(c);
-  while (micros() - start < time) {
-    // do nothing
+void sendString(char* s) {
+  uint8_t oldSREG = SREG;
+  cli();
+  while (char c = *s++) {
+    radio.write(c);
+    delayMicroseconds(1000);  // actual transmission is 11 bits?
   }
-}
-
-void send_string(char* s) {
-  radio.println(s);
+  SREG = oldSREG;
 }
 
 /***
@@ -215,12 +216,6 @@ void send_string(char* s) {
  * receiver wake up. The receiver ignores that byte and
  * so it represents a fixed delay in the response.
  *
- * A fixed delay does not affect the timing repeatability.
- *
- * The complete message uses 1+6+2 = 9 bytes and so,
- * with the default pacing and baud rate will take
- * just 18ms to transmit
- *
  */
 
 uint32_t last_trigger_time = millis();
@@ -228,36 +223,20 @@ void send_trigger(uint8_t base) {
   digitalWriteFast(LED_BUILTIN, 1);
   digitalWrite(RADIO_DATA, 1);
   digitalWrite(RADIO_PDN, 1);
-  delayMicroseconds(1000);
   digitalWrite(RADIO_TX, 1);
   // allow the transmitter to stabilise
-  delayMicroseconds(1000);
-  // Send the receiver a few transitions to
-  // get itself in sync. Finish with carrier on
-  // because the serial transmission will begin with a
-  // zero start bit.
+  delayMicroseconds(500);
   switch (base) {
     case GOAL_BASE:
-      radio.println("U012345#####");
+      sendString("U0123456789##");
       break;
     case HOME_BASE:
-      radio.println("UABCDEF#####");
+      sendString("UABCDEFGHIJ##");
       break;
     case START_BASE:
-      radio.println("Uabcdef#####");
+      sendString("Uabcdefghij##");
       break;
   }
-  // send_byte('U');
-  // // send_byte('U');
-  // for (uint8_t i = 0; i < 4; i++) {
-  //   send_byte(base + i);
-  // }
-  // send_byte('#');
-  // send_byte('#');
-  // send_byte('#');
-  // send_byte('#');
-  delayMicroseconds(500);
-  // do we need to wait a little while before shutting down?
   digitalWrite(RADIO_TX, 0);
   digitalWrite(RADIO_PDN, 0);
   digitalWriteFast(LED_BUILTIN, 0);
