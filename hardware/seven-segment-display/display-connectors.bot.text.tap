@@ -1,0 +1,33 @@
+(.../eagle/ulps/pcbgcode/pcb-gcode.ulp)
+(Copyright 2005 - 2012 by John Johnson)
+(See readme.txt for licensing terms.)
+(This file generated from the board:)
+(.../Timing-Gate/display-connectors.brd)
+(Current profile is .../pcbgcode/profiles/generic.pp  )
+(This file generated 17/02/2020 09:51)
+(Settings from pcb-machine.h)
+(  Tool Size)
+(0.1270 )
+(Z Axis Settings)
+(  High     Up        Down     Drill)
+(15.0000 	2.5000 	-0.1000 	-2.5000 )
+(spindle on time = 3.0000)
+(milling depth = -0.2540)
+(text depth = -0.1270)
+(tool change at 0.0000 0.0000 25.0000 )
+(feed rate xy = F400.00 )
+(feed rate z  = F254.00 )
+(Settings from pcb-defaults.h)
+(isolate min = 0.0200)
+(isolate max = 0.2500)
+(isolate step = 0.1200)
+(Generated top outlines, top drill, bottom outlines, bottom drill, )
+(Unit of measure: mm)
+(Metric Mode)
+G21
+(Absolute Coordinates)
+G90
+M03
+G04 P3.000000
+M05
+M02

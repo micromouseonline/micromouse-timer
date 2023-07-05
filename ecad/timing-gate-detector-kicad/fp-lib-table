@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name "gate-detector")(type "KiCad")(uri "$(KIPRJMOD)/gate-detector.pretty")(options "")(descr ""))
+)

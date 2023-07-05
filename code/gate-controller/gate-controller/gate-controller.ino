@@ -612,13 +612,13 @@ void radio_test(char c) {
 int select_contest_type() {
   lcd.clear();
   lcd.setCursor(0, 0);
-  lcd.print(F("CONTEST TIMER V0.2"));
+  lcd.print(F(" CONTEST TIMER V0.2 "));
   lcd.setCursor(0, 1);
-  lcd.print(F("   RED: RADIO TEST"));
+  lcd.print(F(" GREEN: MAZE EVENT  "));
   lcd.setCursor(0, 2);
-  lcd.print(F(" GREEN: MAZE EVENT"));
+  lcd.print(F("YELLOW: TIME TRIAL  "));
   lcd.setCursor(0, 3);
-  lcd.print(F("YELLOW: TIME TRIAL"));
+  lcd.print(F("   RED: RADIO TEST  "));
   while (button_state == BTN_NONE) {
     delay(50);
   }
