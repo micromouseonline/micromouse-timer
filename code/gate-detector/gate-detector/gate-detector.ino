@@ -1,6 +1,6 @@
-#include <Arduino.h>
 #include "SoftwareSerial.h"
 #include "digitalWriteFast.h"
+#include <Arduino.h>
 
 #define DEBUG 0
 const int sideSensorPin = A0;
@@ -49,7 +49,7 @@ const int PACKET_REPEAT_INTERVAL = 50;
  *
  */
 class ExpFilter {
- public:
+public:
   ExpFilter(){};
 
   explicit ExpFilter(float alpha, float value = 0.0f) { begin(alpha, value); };
@@ -72,7 +72,7 @@ class ExpFilter {
 
   float operator()() { return mValue; }
 
- private:
+private:
   volatile float mAlpha = 1.0f;
   volatile float mValue = 0;
 };
@@ -81,22 +81,28 @@ class ExpFilter {
 class GateSensor {
   const uint32_t LOCKOUT_PERIOD = 50;
 
- public:
+public:
   explicit GateSensor(int pin) : mSensorPin(pin) {
-    slow.begin(0.000769);                  // tau = 1.000 seconds
-    fast.begin((1.0 / (1300.0 * 0.002)));  // tau = 0.002 seconds
+    slow.begin(0.000769);                 // tau = 1.000 seconds
+    fast.begin((1.0 / (1300.0 * 0.002))); // tau = 0.002 seconds
   }
 
   void update() {
     mInput = analogRead(mSensorPin);
-    if (not mInterrupted) {
-      slow.update(mInput);
-    }
+    // if (not mInterrupted) {
+    slow.update(mInput);
+    // }
     fast.update(mInput);
+    // When sensor is occluded, light the LED. It stays on until triggered
     if (slow.value() < 10) {
+      digitalWriteFast(LED_BUILTIN, 1);
       return;
     }
+    // fast recovery after lengthy occlusion
+    slow.set_value(max(slow.value(), fast.value()));
+    // mDiff just lets us know when the sensor is properly lit
     mDiff = fabs(fast.value() - slow.value());
+    // now do the actual detection with plenty of hysteresis
     if (fast.value() < 0.25 * slow.value()) {
       mInterrupted = true;
     }
@@ -125,7 +131,7 @@ class GateSensor {
 
 ////////////////////////////////////////////////////////////////////////
 
-SoftwareSerial radio(RADIO_NC, RADIO_DATA);  // RX, TX
+SoftwareSerial radio(RADIO_NC, RADIO_DATA); // RX, TX
 
 const uint32_t LOCKOUT_TIME = 200;
 const uint8_t HOME_BASE = 0x41;
@@ -157,8 +163,8 @@ void systickInit() {
   bitClear(TCCR2B, CS21);
   bitSet(TCCR2B, CS20);
   // set the timer frequency for 1300Hz
-  OCR2A = (F_CPU / 128 / 1300) - 1;  // 47
-  bitSet(TIMSK2, OCIE2A);            // enable the timer interrupt
+  OCR2A = (F_CPU / 128 / 1300) - 1; // 47
+  bitSet(TIMSK2, OCIE2A);           // enable the timer interrupt
 }
 
 ISR(TIMER2_COMPA_vect) {
@@ -169,7 +175,7 @@ ISR(TIMER2_COMPA_vect) {
 }
 
 /***
- * In an attempt to get reliable timing form the software serial
+ * In an attempt to get reliable timing from the software serial
  * strings are sent by calling directly the write method.
  *
  * At a baud rate of 5000 Baud, each character should take 2ms
@@ -197,12 +203,12 @@ ISR(TIMER2_COMPA_vect) {
  * implied timing scheme used here.
  *
  */
-void sendString(char* s) {
+void sendString(char *s) {
   uint8_t oldSREG = SREG;
   cli();
   while (char c = *s++) {
     radio.write(c);
-    delayMicroseconds(1000);  // actual transmission is 11 bits?
+    delayMicroseconds(1000); // actual transmission is 11 bits?
   }
   SREG = oldSREG;
 }
@@ -227,27 +233,53 @@ void send_trigger(uint8_t base) {
   // allow the transmitter to stabilise
   delayMicroseconds(500);
   switch (base) {
-    case GOAL_BASE:
-      sendString("U0123456789##");
-      break;
-    case HOME_BASE:
-      sendString("UABCDEFGHIJ##");
-      break;
-    case START_BASE:
-      sendString("Uabcdefghij##");
-      break;
+  case GOAL_BASE:
+    sendString("U0123456789##");
+    break;
+  case HOME_BASE:
+    sendString("UABCDEFGHIJ##");
+    break;
+  case START_BASE:
+    sendString("Uabcdefghij##");
+    break;
   }
   digitalWrite(RADIO_TX, 0);
   digitalWrite(RADIO_PDN, 0);
   digitalWriteFast(LED_BUILTIN, 0);
+#if DEBUG == 0
   uint32_t now = millis();
   uint32_t elapsed = millis() - last_trigger_time;
   last_trigger_time = now;
-  Serial.println(elapsed);
+  println(elapsed);
+#endif
 }
 
 uint32_t next_update_time = millis();
 uint32_t debug_update_interval = 50;
+
+void debug_sensors(uint32_t report_delay) {
+  if (DEBUG == 1) {
+    if (millis() - next_update_time > report_delay) {
+      next_update_time += report_delay;
+      // Serial.print(endSensor.slow.value(), 1);
+      Serial.print(endSensor.slow.value(), 1);
+      Serial.print('\t');
+      Serial.print(endSensor.fast.value(), 1);
+      if (gateID == 0) {
+        Serial.print('\t');
+        Serial.print(sideSensor.slow.value(), 1);
+        Serial.print('\t');
+        Serial.print(sideSensor.fast.value(), 1);
+      }
+      // force the serial plotter scale to stay constant
+      Serial.print('\t');
+      Serial.print(0);
+      Serial.print('\t');
+      Serial.print(1023);
+      Serial.println();
+    }
+  }
+}
 
 void setup() {
   pinMode(LED_BUILTIN, OUTPUT);
@@ -261,8 +293,8 @@ void setup() {
   digitalWrite(RADIO_PDN, 0);
   digitalWrite(RADIO_TX, 0);
   digitalWrite(RADIO_PDN, 0);
-  digitalWrite(RADIO_TX, 1);
-  digitalWrite(RADIO_PDN, 1);
+  // digitalWrite(RADIO_TX, 1);
+  // digitalWrite(RADIO_PDN, 1);
   Serial.begin(115200);
   radio.begin(5000);
   gateID = digitalRead(GATE_ID_PIN0) << 3;
@@ -271,49 +303,44 @@ void setup() {
   gateID += digitalRead(GATE_ID_PIN3);
   analogueInit();
   systickInit();
+#if DEBUG == 0
   Serial.print(F("GATE ID: "));
   Serial.println(gateID);
+#else
+  Serial.println(F("END_SLOW, END_FAST, END_SLOW, END_FAST"));
+#endif
+
   while (endSensor.mDiff < 1.0 and sideSensor.mDiff < 1.0) {
+    debug_sensors(debug_update_interval);
     digitalWrite(LED_BUILTIN, 1);
     delay(20);
     digitalWrite(LED_BUILTIN, 0);
     delay(50);
   }
   while (endSensor.mDiff > 1.0 or sideSensor.mDiff > 1.0) {
+    debug_sensors(debug_update_interval);
     digitalWrite(LED_BUILTIN, 1);
     delay(20);
     digitalWrite(LED_BUILTIN, 0);
     delay(50);
   }
-  Serial.println(endSensor.fast.value());
-  Serial.println(sideSensor.fast.value());
-  Serial.println(F("RDY"));
-  if (gateID == 0) {  // the start and home gates
+
+  // Serial.println(endSensor.fast.value());
+  // Serial.println(sideSensor.fast.value());
+  // Serial.println(F("RDY"));
+  // Serial.println(F("0\t0\t0\t0\t0\t0\t"));
+  if (gateID == 0) { // the start and home gates
     side_sensor_base = HOME_BASE;
     end_sensor_base = START_BASE;
   } else {
-    side_sensor_base = GOAL_BASE;  // not used here
+    side_sensor_base = GOAL_BASE; // not used here
     end_sensor_base = GOAL_BASE;
   }
+  next_update_time = millis() + debug_update_interval;
 }
 
 void loop() {
-  if (DEBUG) {
-    if (millis() - next_update_time > debug_update_interval) {
-      next_update_time += debug_update_interval;
-      // Serial.print(endSensor.slow.value(), 1);
-      Serial.print(endSensor.slow.value(), 1);
-      Serial.print('\t');
-      Serial.print(endSensor.fast.value(), 1);
-      if (gateID == 0) {
-        Serial.print('\t');
-        Serial.print(sideSensor.slow.value(), 1);
-        Serial.print('\t');
-        Serial.print(sideSensor.fast.value(), 1);
-      }
-      Serial.println();
-    }
-  }
+  debug_sensors(debug_update_interval);
   if (endSensor.armed() && endSensor.mInterrupted) {
     endSensor.disarm();
     if (not endSensor.mMessageSent) {
