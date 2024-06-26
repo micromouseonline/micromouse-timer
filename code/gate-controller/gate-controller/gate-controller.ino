@@ -121,6 +121,7 @@ int contestState = ST_WAITING;
 
 enum { CT_NONE = 0, CT_MAZE, CT_TRIAL, CT_RADIO };
 int contest_type = CT_NONE;
+enum { GATE_NONE, GATE_ARM, GATE_START, GATE_GOAL, GATE_RESET };
 
 ////////////////////////////////////////////////////////////////////////////
 // This is only going to work with an ATMega328 processor - take care  ////
@@ -497,18 +498,18 @@ void mazeMachine() {
       delay(10);
     }
   }
-  int gate = 0;
+  int gate = GATE_NONE;
   if (reader_state == RD_HOME) {
-    gate = 1;
+    gate = GATE_ARM;
     reader_state = RD_WAIT;
   }
 
   if (reader_state == RD_START) {
-    gate = 2;
+    gate = GATE_START;
     reader_state = RD_WAIT;
   }
   if (reader_state == RD_GOAL) {
-    gate = 3;
+    gate = GATE_GOAL;
     reader_state = RD_WAIT;
   }
 
@@ -526,7 +527,7 @@ void mazeMachine() {
       break;
     case ST_WAITING:
       // if (armButton.isPressed() || (reader_state == RD_HOME)) {
-      if (armButton.isPressed() || gate == 1) {
+      if (armButton.isPressed() || gate == GATE_ARM) {
         if (runCount == 0) {
           send_maze_time(0);
           mazeTimer.restart();
@@ -538,7 +539,7 @@ void mazeMachine() {
       break;
     case ST_ARMED:  // robot in start cell, ready to run
       // if (startButton.isPressed() || reader_state != RD_NONE) {
-      if (startButton.isPressed() || gate == 2) {
+      if (startButton.isPressed() || gate == GATE_START) {
         send_split_time(0);
         runTimer.restart();
         runCount++;
@@ -548,8 +549,8 @@ void mazeMachine() {
       }
       break;
     case ST_RUNNING:  // robot on its way to the goal
-      // if (goalButton.isPressed() || (reader_state == RD_GOAL)) {
-      if (goalButton.isPressed() || gate == 3) {
+      if (goalButton.isPressed() || gate == GATE_GOAL) {
+        // robot arrives at goal
         runTimer.stop();
         uint32_t time = runTimer.time();
         send_run_time(time);
@@ -561,8 +562,8 @@ void mazeMachine() {
         showState();
         reader_state = RD_WAIT;
       }
-      // if (armButton.isPressed() || (reader_state == RD_HOME)) {
-      if (armButton.isPressed() || gate == 1) {
+      if (armButton.isPressed() || gate == GATE_ARM) {
+        // robot is back in start cell or run is aborted
         runTimer.stop();
         runTimer.reset();
         set_state(ST_ARMED);
@@ -571,8 +572,7 @@ void mazeMachine() {
       }
       break;
     case ST_GOAL:
-      // if (armButton.isPressed() || (reader_state == RD_HOME)) {
-      if (armButton.isPressed() || gate == 1) {
+      if (armButton.isPressed() || gate == GATE_ARM) {
         // robot is back in start cell or run is aborted
         set_state(ST_ARMED);
         showState();
