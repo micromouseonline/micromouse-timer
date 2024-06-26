@@ -68,26 +68,27 @@ const int MSG_CTrigger       = 73;
 
 // clang-format on
 
-inline void send_message(int type, unsigned long value) {
+inline void send_message(int type, unsigned long value,const __FlashStringHelper *comment = nullptr) {
   Serial.print('<');
   Serial.print(type);
   Serial.print(',');
   Serial.print(value);
   Serial.print('>');
+  Serial.print(comment);
   Serial.println();
 }
 
 void send_run_time(unsigned long time) {
   //TODO Why do we need to send the time twice?
-  // send_message(MSG_C1RunTime, time);
-  // delay(20);
-  send_message(MSG_C1RunTime, time);
+  send_message(MSG_C1RunTime, time, F(" RUN TIME"));
+  delay(20);
+  send_message(MSG_C1RunTime, time, F(" RUN TIME"));
 }
 
 void send_maze_time(unsigned long time) {
-  send_message(MSG_CourseTimeMs, time);
+  send_message(MSG_CourseTimeMs, time, F(" RESET MAZE TIME"));
 }
 
 void send_split_time(unsigned long time) {
-  send_message(MSG_C1SplitTime, time);
+  send_message(MSG_C1SplitTime, time, F(" RESET RUN TIME"));
 }

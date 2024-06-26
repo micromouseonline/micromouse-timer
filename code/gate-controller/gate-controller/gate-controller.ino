@@ -247,8 +247,35 @@ ISR(TIMER2_COMPA_vect) {
 
 void set_state(int new_state) {
   contestState = new_state;
-  send_message(MSG_CURRENT_STATE, contestState);  // log current state to PC
-  showState();                                    // update the LCD
+  const __FlashStringHelper* comment = F("");
+  switch (contestState) {
+    case ST_CALIBRATE:
+      comment = F(" CALIBRATE");
+      break;
+    case ST_NEW_MOUSE:
+      comment = F(" INIT     ");
+      break;
+    case ST_WAITING:
+      comment = F(" WAITING  ");
+      break;
+    case ST_ARMED:
+      comment = F(" ARMED    ");
+      break;
+    case ST_STARTING:
+      comment = F(" STARTING ");
+      break;
+    case ST_RUNNING:
+      comment = F(" RUNNING  ");
+      break;
+    case ST_GOAL:
+      comment = F(" GOAL");
+      break;
+    default:
+      comment = F(" ????");
+      break;
+  }
+  send_message(MSG_CURRENT_STATE, contestState, comment);  // log current state to PC
+  showState();                                             // update the LCD
 }
 
 /*********************************************** process radio data ***/
@@ -406,7 +433,7 @@ int old_state = 0;
 void trial_machine() {
   if (resetButton.isPressed()) {
     set_state(ST_NEW_MOUSE);
-    send_message(MSG_NewMouse, 0);
+    send_message(MSG_NewMouse, 0, F(" NEW MOUSE"));
     send_maze_time(0);
   }
 
@@ -488,7 +515,7 @@ void trial_machine() {
 void mazeMachine() {
   if (resetButton.isPressed()) {
     set_state(ST_NEW_MOUSE);
-    send_message(MSG_NewMouse, 0);
+    send_message(MSG_NewMouse, 0, F(" NEW MOUSE"));
     send_maze_time(0);
     while (resetButton.isPressed()) {
       delay(10);
@@ -700,7 +727,7 @@ void setup() {
     radio.read();  // flush the input buffer
   }
   contestState = ST_NEW_MOUSE;
-  send_message(MSG_NewMouse, 0);
+  send_message(MSG_NewMouse, 0, F(" NEW MOUSE"));
 }
 
 /*********************************************** main loop ******************/
