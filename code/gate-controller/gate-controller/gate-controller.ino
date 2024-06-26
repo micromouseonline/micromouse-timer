@@ -248,6 +248,7 @@ ISR(TIMER2_COMPA_vect) {
 void set_state(int new_state) {
   contestState = new_state;
   send_message(MSG_CURRENT_STATE, contestState);  // log current state to PC
+  showState();                                    // update the LCD
 }
 
 /*********************************************** process radio data ***/
@@ -432,7 +433,6 @@ void trial_machine() {
       bestTime = UINT32_MAX;
       displayInit();
       set_state(ST_ARMED);
-      showState();
       break;
 
     case ST_ARMED:  // robot in start cell, ready to run
@@ -447,7 +447,6 @@ void trial_machine() {
         runTimer.restart();
         runCount++;
         set_state(ST_RUNNING);
-        showState();
       }
       break;
     case ST_RUNNING:  // robot on its way to the goal
@@ -465,12 +464,10 @@ void trial_machine() {
         send_run_time(g_run_time);
         send_split_time(0);
         set_state(ST_GOAL);
-        showState();
       }
       if (armButton.isPressed()) {
         runTimer.restart();
         set_state(ST_ARMED);
-        showState();
       }
       break;
     case ST_GOAL:  // transient state to record run time
@@ -480,7 +477,6 @@ void trial_machine() {
         // g_run_start_time = millis();
         // send_split_time(0);
         set_state(ST_RUNNING);
-        showState();
       }
     default:
       break;
@@ -521,7 +517,6 @@ void mazeMachine() {
       bestTime = UINT32_MAX;
       displayInit();
       set_state(ST_WAITING);
-      showState();
       reader_state = RD_WAIT;
       gate_id = RD_NONE;
       break;
@@ -533,7 +528,6 @@ void mazeMachine() {
           mazeTimer.restart();
         }
         set_state(ST_ARMED);
-        showState();
         reader_state = RD_WAIT;
       }
       break;
@@ -544,7 +538,6 @@ void mazeMachine() {
         runTimer.restart();
         runCount++;
         set_state(ST_RUNNING);
-        showState();
         reader_state = RD_WAIT;
       }
       break;
@@ -559,7 +552,6 @@ void mazeMachine() {
           showTime(11, 3, bestTime);
         }
         set_state(ST_GOAL);
-        showState();
         reader_state = RD_WAIT;
       }
       if (armButton.isPressed() || gate == GATE_ARM) {
@@ -567,7 +559,6 @@ void mazeMachine() {
         runTimer.stop();
         runTimer.reset();
         set_state(ST_ARMED);
-        showState();
         reader_state = RD_WAIT;
       }
       break;
@@ -575,7 +566,6 @@ void mazeMachine() {
       if (armButton.isPressed() || gate == GATE_ARM) {
         // robot is back in start cell or run is aborted
         set_state(ST_ARMED);
-        showState();
         reader_state = RD_WAIT;
       }
       break;
