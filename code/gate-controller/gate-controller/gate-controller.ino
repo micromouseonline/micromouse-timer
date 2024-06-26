@@ -493,6 +493,9 @@ void mazeMachine() {
     set_state(ST_NEW_MOUSE);
     send_message(MSG_NewMouse, 0);
     send_maze_time(0);
+    while (resetButton.isPressed()) {
+      delay(10);
+    }
   }
   int gate = 0;
   if (reader_state == RD_HOME) {
