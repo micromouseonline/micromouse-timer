@@ -78,8 +78,9 @@ inline void send_message(int type, unsigned long value) {
 }
 
 void send_run_time(unsigned long time) {
-  send_message(MSG_C1RunTime, time);
-  delay(20);
+  //TODO Why do we need to send the time twice?
+  // send_message(MSG_C1RunTime, time);
+  // delay(20);
   send_message(MSG_C1RunTime, time);
 }
 
