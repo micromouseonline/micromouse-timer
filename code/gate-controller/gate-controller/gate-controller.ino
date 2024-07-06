@@ -123,7 +123,7 @@ const int ST_NEW_MOUSE = 6;  // Set up for new mouse
 int contestState = ST_WAITING;
 
 enum { CT_NONE = 0, CT_MAZE, CT_TRIAL, CT_RADIO };
-int contest_type = CT_NONE;
+int contest_type = CT_MAZE;
 enum { GATE_NONE, GATE_ARM, GATE_START, GATE_GOAL, GATE_RESET };
 
 ////////////////////////////////////////////////////////////////////////////
@@ -642,6 +642,10 @@ int select_contest_type() {
   lcd.print(F("YELLOW: TIME TRIAL  "));
   lcd.setCursor(0, 3);
   lcd.print(F("   RED: RADIO TEST  "));
+  while (button_state != BTN_NONE) {
+    delay(50);
+  }
+  delay(250);
   while (button_state == BTN_NONE) {
     delay(50);
   }
@@ -704,10 +708,14 @@ void setup() {
   lcd.print(F("RADIO ...   "));
   radio.begin(5000);
   lcd.print(F("Done"));
-  delay(1000);
+  delay(500);
 
   setupSystick();
-  contest_type = select_contest_type();
+  delay(100);
+  if (button_state != BTN_NONE) {
+    Serial.println("SELECT");
+    contest_type = select_contest_type();
+  }
   runTimer.reset();
   mazeTimer.reset();
   switch (contest_type) {
