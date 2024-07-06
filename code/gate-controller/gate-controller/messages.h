@@ -49,13 +49,17 @@ Implemented message types:
 ***/
 
 // Message Valid Values
-const int MSG_NewMouse       = 98;
 const int MSG_CURRENT_STATE  =  4;
 const int MSG_C1SplitTime    = 12;
 const int MSG_C1RunTime      = 13;
 const int MSG_CourseTimeMs   = 30;
 
+const int MSG_NewMouse       = 98;
 const int MSG_SetMode        = 99;
+
+const int MSG_STrigger       = 71;
+const int MSG_FTrigger       = 72;
+const int MSG_CTrigger       = 73;
 
 const int MSG_SGLevel        = 81;
 const int MSG_SGPot          = 82;
@@ -63,9 +67,6 @@ const int MSG_FGLevel        = 83;
 const int MSG_FGPot          = 84;
 const int MSG_SCLevel        = 85;
 const int MSG_SCPot          = 86;
-const int MSG_STrigger       = 71;
-const int MSG_FTrigger       = 72;
-const int MSG_CTrigger       = 73;
 
 
 const int MSG_Watchdog       = 0;
@@ -90,10 +91,3 @@ void send_run_time(unsigned long time) {
   send_message(MSG_C1RunTime, time, F(" RUN TIME"));
 }
 
-void send_maze_time(unsigned long time) {
-  send_message(MSG_CourseTimeMs, time, F(" RESET MAZE TIME"));
-}
-
-void send_split_time(unsigned long time) {
-  send_message(MSG_C1SplitTime, time, F(" RESET RUN TIME"));
-}

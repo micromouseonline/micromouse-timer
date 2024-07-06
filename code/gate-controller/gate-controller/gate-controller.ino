@@ -442,7 +442,7 @@ void trial_machine() {
   if (resetButton.isPressed()) {
     set_state(ST_NEW_MOUSE);
     send_message(MSG_NewMouse, 0, F(" NEW MOUSE"));
-    send_maze_time(0);
+    send_message(MSG_CourseTimeMs, 0, F(" RESET MAZE TIME"));
   }
 
   int gate = RD_NONE;
@@ -474,11 +474,11 @@ void trial_machine() {
       if (startButton.isPressed() || gate == RD_START) {
         bestTime = UINT32_MAX;
         if (runCount == 0) {
-          send_maze_time(0);
+          send_message(MSG_CourseTimeMs, 0, F(" RESET MAZE TIME"));
           mazeTimer.restart();
           g_maze_start_time = millis();
         }
-        send_split_time(0);
+        send_message(MSG_C1SplitTime, 0, F(" RESET RUN TIME"));
         runTimer.restart();
         runCount++;
         set_state(ST_RUNNING);
@@ -496,8 +496,11 @@ void trial_machine() {
         }
         runCount++;
         runTimer.restart();
-        send_run_time(g_run_time);
-        send_split_time(0);
+
+        send_message(MSG_C1RunTime, g_run_time, F(" RUN TIME"));
+        delay(20);
+        send_message(MSG_C1RunTime, g_run_time, F(" RUN TIME"));
+        send_message(MSG_C1SplitTime, 0, F(" RESET RUN TIME"));
         set_state(ST_GOAL);
       }
       if (armButton.isPressed()) {
@@ -524,7 +527,7 @@ void mazeMachine() {
   if (resetButton.isPressed()) {
     set_state(ST_NEW_MOUSE);
     send_message(MSG_NewMouse, 0, F(" NEW MOUSE"));
-    send_maze_time(0);
+    send_message(MSG_CourseTimeMs, 0, F(" RESET MAZE TIME"));
     while (resetButton.isPressed()) {
       delay(10);
     }
@@ -559,7 +562,7 @@ void mazeMachine() {
       // if (armButton.isPressed() || (reader_state == RD_HOME)) {
       if (armButton.isPressed() || gate == GATE_ARM) {
         if (runCount == 0) {
-          send_maze_time(0);
+          send_message(MSG_CourseTimeMs, 0, F(" RESET MAZE TIME"));
           mazeTimer.restart();
         }
         set_state(ST_ARMED);
@@ -569,7 +572,7 @@ void mazeMachine() {
     case ST_ARMED:  // robot in start cell, ready to run
       // if (startButton.isPressed() || reader_state != RD_NONE) {
       if (startButton.isPressed() || gate == GATE_START) {
-        send_split_time(0);
+        send_message(MSG_C1SplitTime, 0, F(" RESET RUN TIME"));
         runTimer.restart();
         runCount++;
         set_state(ST_RUNNING);
@@ -581,7 +584,9 @@ void mazeMachine() {
         // robot arrives at goal
         runTimer.stop();
         uint32_t time = runTimer.time();
-        send_run_time(time);
+        send_message(MSG_C1RunTime, time, F(" RUN TIME"));
+        delay(20);
+        send_message(MSG_C1RunTime, time, F(" RUN TIME"));
         if (time < bestTime) {
           bestTime = time;
           showTime(11, 3, bestTime);
@@ -810,6 +815,6 @@ void loop() {
   // Finally, we check to see if it is time to sent a watchdog message
   if (millis() - g_watchdog_time > watchdog_interval) {
     g_watchdog_time = millis();
-    send_message(MSG_Watchdog, g_watchdog_id++, F(" WATCHDOG"));
+    // send_message(MSG_Watchdog, g_watchdog_id++, F(" WATCHDOG"));
   }
 }
