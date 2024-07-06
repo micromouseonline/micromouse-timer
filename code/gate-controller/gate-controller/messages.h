@@ -10,8 +10,7 @@ Overall supervision performed by VisualBasic and passed to the Arduino
 Messages in the format <message_type,value>CrLf
 Implemented message types:
    ENCODED  MESSAGE TYPE      DIRECTION      TX FREQENCY     COMMENTS
-   98       MSG_NewMouse      PC to Arduino  Event Driven    A new mouse has been selected in the host application 
-                                                             (value argument will always be passed as 0)
+   0        MSG_Watchdog      Arduino to PC  1000 msec       Sent every second with an incrementing value to check connection is active
    4        MSG_CURRENT_STATE Arduino to PC                  Value of timer state (0 to 5) 
                                                                   0 calibrate gates, 
                                                                   1 looking for mouse in start cell,
@@ -39,6 +38,9 @@ Implemented message types:
    85       MSG_SCLevel       Arduino to PC  100 msec        Intensity level being received by Mouse in Start Cell phototransistor
    86       MSG_SCPot         Arduino to PC  100 msec        Value read from Mouse in Start Cell potentiometer
 
+
+   98       MSG_NewMouse      PC to Arduino  Event Driven    A new mouse has been selected in the host application 
+                                                             (value argument will always be passed as 0)
    99       MSG_SetMode       PC to Arduino  Event Driven    Controls the Arduino mode 
                                                              Valid values: 
                                                                   TIMER       (normal timing mode), 
@@ -64,6 +66,9 @@ const int MSG_SCPot          = 86;
 const int MSG_STrigger       = 71;
 const int MSG_FTrigger       = 72;
 const int MSG_CTrigger       = 73;
+
+
+const int MSG_Watchdog       = 0;
 
 
 // clang-format on
