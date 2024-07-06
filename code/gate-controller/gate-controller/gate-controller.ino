@@ -16,6 +16,7 @@
 #include <LiquidCrystal_I2C.h>
 #include <SoftwareSerial.h>
 #include <Wire.h>
+#include <avr/wdt.h>
 #include <sdcard.h>
 #include "RTClib.h"
 #include "button.h"
@@ -145,13 +146,17 @@ enum { GATE_NONE, GATE_ARM, GATE_START, GATE_GOAL, GATE_RESET };
 // This is also a good way to start a firmware update from the existing
 // firmware.
 ////////////////////////////////////////////////////////////////////////////
+
+void (*reset_function_zero)(void) = 0;                         // reset function at address 0
+void (*reset_function_bootloader)(void) = (void (*)())0x7E00;  // bootloader entry point
+
 void reset_processor() {
 #if defined(__AVR_ATmega328P__) || defined(__AVR_ATmega328__)
-  noInterrupts();
-
-  asm volatile("jmp 0x7E00");  // bootloader start address
+  cli();
+  reset_function_bootloader();  //
 #endif
 }
+
 ////////////////////////////////////////////////////////////////////////////
 
 int8_t gEncoderValue = 0;
