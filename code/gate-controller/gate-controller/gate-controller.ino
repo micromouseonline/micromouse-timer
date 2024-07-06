@@ -42,6 +42,9 @@ const uint8_t BTN_ENCODER = 16;
 
 volatile uint8_t button_state = BTN_NONE;
 
+const uint32_t watchdog_interval = 1000;  // milliseconds
+uint32_t g_watchdog_time;
+uint16_t g_watchdog_id;
 /***
  * Note that the adress of the I2C expander depends on the exact
  * chip version and the theree address links.
@@ -647,17 +650,14 @@ int select_contest_type() {
     type = CT_MAZE;
   } else if (button_state == BTN_YELLOW) {
     type = CT_TRIAL;
-
   } else if (button_state == BTN_RED) {
-    lcd.clear();
-    lcd.print(F("RADIO TEST"));
     type = CT_RADIO;
   }
   lcd.clear();
   while (button_state != BTN_NONE) {
     delay(100);
   }
-  delay(500);
+  // delay(500);
   return type;
 }
 
@@ -728,10 +728,20 @@ void setup() {
   }
   contestState = ST_NEW_MOUSE;
   send_message(MSG_NewMouse, 0, F(" NEW MOUSE"));
+  g_watchdog_time = millis();
+  g_watchdog_id = 0;
 }
 
 /*********************************************** main loop ******************/
+/// The main loop runs as fast as it can
+/// The serial links are checked and the state machines are updated
+/// on every iteration.
+/// The display is updated in sections so that too much time is not lost
+/// on each iteration.
+/// Buttons are updated continuously in the systick interrupt.
+
 int display_phase = 0;
+
 void loop() {
   char c;
   if (radio.available()) {
@@ -783,6 +793,10 @@ void loop() {
         display_phase = 0;
         break;
     }
-    // display_phase++;
+  }
+  // Finally, we check to see if it is time to sent a watchdog message
+  if (millis() - g_watchdog_time > watchdog_interval) {
+    g_watchdog_time = millis();
+    send_message(MSG_Watchdog, g_watchdog_id++, F(" WATCHDOG"));
   }
 }
