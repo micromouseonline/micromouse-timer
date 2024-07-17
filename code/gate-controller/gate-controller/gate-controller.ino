@@ -564,6 +564,9 @@ void mazeMachine() {
           mazeTimer.restart();
         }
         reader_state = RD_WAIT;
+        while (armButton.isPressed()) {
+          // delay(2);
+        }
       }
       break;
     case ST_ARMED:  // robot in start cell, ready to run
@@ -574,6 +577,9 @@ void mazeMachine() {
         runTimer.restart();
         runCount++;
         reader_state = RD_WAIT;
+        while (startButton.isPressed()) {
+          delay(2);
+        }
       }
       break;
     case ST_RUNNING:  // robot on its way to the goal
@@ -595,6 +601,9 @@ void mazeMachine() {
         runTimer.reset();
         set_state(ST_ARMED);
         reader_state = RD_WAIT;
+        while (armButton.isPressed()) {
+          delay(2);
+        }
       }
       break;
     case ST_GOAL:
@@ -602,6 +611,9 @@ void mazeMachine() {
         // robot is back in start cell or run is aborted
         set_state(ST_ARMED);
         reader_state = RD_WAIT;
+        while (armButton.isPressed()) {
+          delay(2);
+        }
       }
       break;
     default:
