@@ -1,0 +1,23 @@
+{
+	"folders": [
+		{
+			"path": "code"
+		},
+		{
+			"path": "code/gate-controller"
+		},
+		{
+			"path": "code/gate-detector"
+		},
+		{
+			"path": "code/linx-radio-rx-test"
+		},
+		{
+			"path": "code/linx-radio-tx-test"
+		},
+		{
+			"path": "code/SD-card-test"
+		}
+	],
+	"settings": {}
+}
