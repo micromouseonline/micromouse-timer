@@ -70,21 +70,26 @@ const int MSG_CTrigger       = 73;
 
 const int MSG_Watchdog       = 0;
 
-
+extern char last_char;
 // clang-format on
 
-inline void send_message(int type, unsigned long value,const __FlashStringHelper *comment = nullptr) {
+inline void send_message(int type, unsigned long value, const __FlashStringHelper *comment = nullptr) {
   Serial.print('<');
   Serial.print(type);
   Serial.print(',');
   Serial.print(value);
   Serial.print('>');
+  if (type == MSG_CURRENT_STATE) {
+    Serial.print(' ');
+    Serial.print(last_char);
+    last_char = '#';
+  }
   Serial.print(comment);
   Serial.println();
 }
 
 void send_run_time(unsigned long time) {
-  //TODO Why do we need to send the time twice?
+  // TODO Why do we need to send the time twice?
   send_message(MSG_C1RunTime, time, F(" RUN TIME"));
   delay(20);
   send_message(MSG_C1RunTime, time, F(" RUN TIME"));
