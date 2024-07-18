@@ -586,6 +586,9 @@ void mazeMachine() {
     case ST_RUNNING:  // robot on its way to the goal
       if (goalButton.isPressed() || gate == GATE_GOAL) {
         // robot arrives at goal
+        if (runTimer.time() < 500) {
+          break;  /////////////////////////////////////// NASTY HACK
+        }
         runTimer.stop();
         uint32_t time = runTimer.time();
         set_state(ST_GOAL);
