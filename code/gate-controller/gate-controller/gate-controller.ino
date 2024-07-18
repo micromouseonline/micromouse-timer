@@ -594,7 +594,9 @@ void mazeMachine() {
           bestTime = time;
           showTime(11, 3, bestTime);
         }
+        // send_message(MSG_Watchdog, millis(), F(" timecheck"));
         reader_state = RD_WAIT;
+        // break;
       }
       if (armButton.isPressed() || gate == GATE_ARM) {
         // robot is back in start cell or run is aborted
@@ -611,6 +613,7 @@ void mazeMachine() {
       if (armButton.isPressed() || gate == GATE_ARM) {
         // robot is back in start cell or run is aborted
         set_state(ST_ARMED);
+        // send_message(MSG_Watchdog, millis(), F(" timecheck"));
         reader_state = RD_WAIT;
         while (armButton.isPressed()) {
           delay(2);
