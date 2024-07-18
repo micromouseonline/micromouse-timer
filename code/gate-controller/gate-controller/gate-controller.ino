@@ -295,7 +295,8 @@ volatile ReaderState reader_state = RD_WAIT;
 uint32_t gate_message_time;
 int retry_count;
 int gate_id = 0;
-char last_char;
+char last_char = '*';
+
 void gate_reader(char c) {
   if (not isprint(c)) {
     return;
