@@ -255,7 +255,7 @@ ISR(TIMER2_COMPA_vect) {
 
 void set_state(int new_state) {
   contestState = new_state;
-  const __FlashStringHelper* comment = F("");
+  const __FlashStringHelper *comment = F("");
   switch (contestState) {
     case ST_CALIBRATE:
       comment = F(" CALIBRATE");
@@ -295,7 +295,8 @@ volatile ReaderState reader_state = RD_WAIT;
 uint32_t gate_message_time;
 int retry_count;
 int gate_id = 0;
-char last_char;
+char last_char = '*';
+
 void gate_reader(char c) {
   if (not isprint(c)) {
     return;
@@ -375,7 +376,7 @@ void showTime(int column, int line, uint32_t time) {
   uint32_t seconds = (time / ONE_SECOND) % 60;
   uint32_t minutes = (time / ONE_MINUTE) % 60;
   char lineBuffer[10] = {0};
-  char* p = lineBuffer;
+  char *p = lineBuffer;
   *p++ = '0' + minutes / 10;
   *p++ = '0' + minutes % 10;
   *p++ = ':';
@@ -561,29 +562,39 @@ void mazeMachine() {
     case ST_WAITING:
       // if (armButton.isPressed() || (reader_state == RD_HOME)) {
       if (armButton.isPressed() || gate == GATE_ARM) {
+        set_state(ST_ARMED);
         if (runCount == 0) {
           send_message(MSG_CourseTimeMs, 0, F(" RESET MAZE TIME"));
           mazeTimer.restart();
         }
-        set_state(ST_ARMED);
         reader_state = RD_WAIT;
+        while (armButton.isPressed()) {
+          // delay(2);
+        }
       }
       break;
     case ST_ARMED:  // robot in start cell, ready to run
       // if (startButton.isPressed() || reader_state != RD_NONE) {
       if (startButton.isPressed() || gate == GATE_START) {
+        set_state(ST_RUNNING);
         send_message(MSG_C1SplitTime, 0, F(" RESET RUN TIME"));
         runTimer.restart();
         runCount++;
-        set_state(ST_RUNNING);
         reader_state = RD_WAIT;
+        while (startButton.isPressed()) {
+          delay(2);
+        }
       }
       break;
     case ST_RUNNING:  // robot on its way to the goal
       if (goalButton.isPressed() || gate == GATE_GOAL) {
         // robot arrives at goal
+        if (runTimer.time() < 500) {
+          break;  /////////////////////////////////////// NASTY HACK
+        }
         runTimer.stop();
         uint32_t time = runTimer.time();
+        set_state(ST_GOAL);
         send_message(MSG_C1RunTime, time, F(" RUN TIME"));
         delay(20);
         send_message(MSG_C1RunTime, time, F(" RUN TIME"));
@@ -591,8 +602,9 @@ void mazeMachine() {
           bestTime = time;
           showTime(11, 3, bestTime);
         }
-        set_state(ST_GOAL);
+        // send_message(MSG_Watchdog, millis(), F(" timecheck"));
         reader_state = RD_WAIT;
+        // break;
       }
       if (armButton.isPressed() || gate == GATE_ARM) {
         // robot is back in start cell or run is aborted
@@ -600,13 +612,20 @@ void mazeMachine() {
         runTimer.reset();
         set_state(ST_ARMED);
         reader_state = RD_WAIT;
+        while (armButton.isPressed()) {
+          delay(2);
+        }
       }
       break;
     case ST_GOAL:
       if (armButton.isPressed() || gate == GATE_ARM) {
         // robot is back in start cell or run is aborted
         set_state(ST_ARMED);
+        // send_message(MSG_Watchdog, millis(), F(" timecheck"));
         reader_state = RD_WAIT;
+        while (armButton.isPressed()) {
+          delay(2);
+        }
       }
       break;
     default:
